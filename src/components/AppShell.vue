@@ -73,9 +73,9 @@ function isActive(name: string, routeName: unknown) {
       >Pular para o conteúdo</a
     >
 
-    <header class="sticky top-0 z-40 bg-ink/75 backdrop-blur-md max-md:static max-md:bg-transparent max-md:backdrop-blur-none">
+    <header class="sticky top-0 z-40 bg-ink/75 pt-[env(safe-area-inset-top)] backdrop-blur-md max-md:static max-md:bg-transparent max-md:backdrop-blur-none">
       <div class="container-ed flex h-16 items-center gap-4 md:h-20">
-        <RouterLink to="/" class="flex shrink-0 items-center gap-2.5 rounded-full" data-testid="nav-logo" aria-label="Radar by JpDev — início">
+        <RouterLink to="/" class="flex shrink-0 items-center gap-2.5 rounded-full max-md:min-h-11" data-testid="nav-logo" aria-label="Radar by JpDev — início">
           <img src="/jpdev-logo.png" alt="" class="size-9 rounded-full border border-line bg-surface object-cover object-top" width="36" height="36" />
           <span class="leading-none">
             <span class="block font-display text-base font-extrabold tracking-tight">Radar</span>
@@ -109,23 +109,23 @@ function isActive(name: string, routeName: unknown) {
       </div>
     </header>
 
-    <main id="main" tabindex="-1" class="relative z-10 container-ed pb-10 md:pb-12">
+    <main id="main" tabindex="-1" class="relative isolate z-10 container-ed pb-10 md:pb-12">
       <slot />
     </main>
 
     <!-- Discreet admin access: only "Entrar" (logged out) or "Sair" (logged in). -->
-    <footer class="container-ed flex items-center justify-between gap-4 border-t border-line pt-5 pb-32 text-xs text-muted md:pb-8">
+    <footer class="container-ed flex items-center justify-between gap-4 border-t border-line pt-5 pb-[calc(8rem+env(safe-area-inset-bottom))] text-xs text-muted md:pb-[max(2rem,env(safe-area-inset-bottom))]">
       <span>Radar by JpDev</span>
       <span v-if="admin.status === 'in'" class="flex items-center gap-3">
         <span data-testid="footer-user">{{ admin.username }}</span>
-        <button type="button" class="min-h-11 rounded-full px-2 font-medium text-fg underline-offset-4 hover:underline" data-testid="logout" @click="logout">Sair</button>
+        <button type="button" class="min-h-11 rounded-full px-2 font-medium text-fg underline-offset-4 hover:underline max-md:min-w-11" data-testid="logout" @click="logout">Sair</button>
       </span>
       <RouterLink v-else-if="admin.status === 'out' && $route.name !== 'login'" to="/login" class="inline-flex min-h-11 items-center rounded-full px-2 underline-offset-4 hover:text-fg hover:underline" data-testid="login-link">Entrar</RouterLink>
     </footer>
 
     <!-- Floating pill bottom nav (mobile) -->
     <nav
-      class="pill-nav fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 md:hidden"
+      class="pill-nav fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-40 mx-auto flex w-fit items-center gap-1 md:hidden"
       aria-label="Navegação principal"
     >
       <RouterLink

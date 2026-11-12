@@ -19,7 +19,7 @@ watch(
 <template>
   <dialog
     ref="el"
-    class="card m-auto w-[min(92vw,420px)] p-0 text-fg backdrop:bg-black/70"
+    class="card m-auto max-h-[min(90dvh,calc(100dvh-1rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)))] w-[min(92vw,420px)] overflow-y-auto overscroll-contain p-0 text-fg backdrop:bg-black/70"
     aria-labelledby="confirm-title"
     data-testid="confirm-dialog"
     @cancel.prevent="emit('cancel')"

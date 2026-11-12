@@ -442,7 +442,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
 
     <StatePanel v-if="error && !page" class="mt-8" kind="error" title="Não foi possível carregar o feed" :detail="error" @retry="load" />
 
-    <div v-else class="mt-8 grid min-h-dvh content-start gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+    <div v-else class="mt-8 grid min-h-dvh grid-cols-1 content-start gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       <!-- "Em alta" (shot: Popular News + See All) -->
       <section v-if="popular.length || (loading && !page)" class="min-w-0 lg:sticky lg:top-24 lg:self-start" aria-labelledby="popular-h">
         <div class="mb-3 flex items-center justify-between gap-3">
@@ -464,7 +464,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
           <p v-if="page && page.total" class="text-sm text-muted tabular-nums">página {{ filters.page }} de {{ totalPages }}</p>
         </div>
 
-        <div v-if="loading && !page" class="grid gap-4 md:grid-cols-2" data-testid="feed-loading" aria-hidden="true">
+        <div v-if="loading && !page" class="grid grid-cols-1 gap-4 md:grid-cols-2" data-testid="feed-loading" aria-hidden="true">
           <div v-for="i in 6" :key="i" class="skeleton h-56" />
         </div>
         <StatePanel
@@ -478,8 +478,8 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
         </StatePanel>
 
         <template v-else>
-          <ul class="grid gap-4 transition-opacity duration-200 md:grid-cols-2" :class="[loading ? 'opacity-50' : '', popular.length ? '' : 'xl:grid-cols-3']" data-testid="feed-list">
-            <li v-for="(it, i) in items" :key="it.item_id" class="grid">
+          <ul class="grid grid-cols-1 gap-4 transition-opacity duration-200 md:grid-cols-2" :class="[loading ? 'opacity-50' : '', popular.length ? '' : 'xl:grid-cols-3']" data-testid="feed-list">
+            <li v-for="(it, i) in items" :key="it.item_id" class="grid min-w-0 grid-cols-1">
               <NewsCard v-reveal="i" :item="it" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" />
             </li>
           </ul>
