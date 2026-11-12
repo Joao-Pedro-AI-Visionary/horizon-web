@@ -12,6 +12,13 @@ const MAX_STAGGER = 8
 /** staggerDelay caps the stagger so long lists never wait more than ~0.45s. */
 export const staggerDelay = (i: number) => `${Math.min(Math.max(i, 0), MAX_STAGGER) * STAGGER_MS}ms`
 
+function inScroller(el: HTMLElement): boolean {
+  const p = el.parentElement
+  if (!p) return false
+  const s = getComputedStyle(p)
+  return /(auto|scroll)/.test(`${s.overflowX} ${s.overflowY}`)
+}
+
 let io: IntersectionObserver | undefined
 function observer(): IntersectionObserver | undefined {
   if (io || typeof IntersectionObserver === 'undefined') return io
@@ -37,7 +44,9 @@ export const vReveal: Directive<HTMLElement, number | undefined> = {
     el.dataset.reveal = ''
     el.style.setProperty('--d', staggerDelay(value ?? 0))
     const o = observer()
-    if (!o || reducedMotion()) el.classList.add('is-in')
+    // Items of a scroll container (e.g. the digest list, a horizontal row on
+    // mobile) are clipped by it and may never intersect: show them at once.
+    if (!o || reducedMotion() || inScroller(el)) el.classList.add('is-in')
     else o.observe(el)
   },
   unmounted(el) {

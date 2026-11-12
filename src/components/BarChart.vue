@@ -95,11 +95,11 @@ const tip = computed(() => {
       <svg :width="width" :height="H" :viewBox="`0 0 ${width} ${H}`" role="img" :aria-label="title" class="block max-w-full">
         <g aria-hidden="true">
           <g v-for="t in ticks" :key="t">
-            <line :x1="pad.left" :x2="width - pad.right" :y1="y(t)" :y2="y(t)" stroke="#2a2a2a" :stroke-dasharray="t === 0 ? undefined : '2 4'" />
+            <line :x1="pad.left" :x2="width - pad.right" :y1="y(t)" :y2="y(t)" stroke="#dbe3dc" :stroke-dasharray="t === 0 ? undefined : '2 4'" />
             <text :x="pad.left - 8" :y="y(t) + 4" text-anchor="end" class="fill-muted font-mono text-[10px]">{{ fmt(t) }}</text>
           </g>
           <template v-for="(l, i) in labels" :key="`${l}-${sig}`">
-            <rect v-if="active === i" :x="groupX(i)" :y="pad.top" :width="groupW" :height="plotH" fill="#ffffff" fill-opacity="0.05" />
+            <rect v-if="active === i" :x="groupX(i)" :y="pad.top" :width="groupW" :height="plotH" fill="#121a14" fill-opacity="0.05" />
             <path v-for="(s, j) in series" :key="s.name" :d="barPath(barX(i, j), s.values[i] ?? 0)" :fill="s.color" class="bar-grow" :style="{ '--d': `${Math.min(i, 30) * 22 + j * 60}ms` }" />
             <text v-if="(labels.length - 1 - i) % labelEvery === 0" :x="groupX(i) + groupW / 2" :y="H - 8" text-anchor="middle" class="fill-muted font-mono text-[10px]">{{ l }}</text>
           </template>
@@ -126,15 +126,15 @@ const tip = computed(() => {
         :style="{ left: `${tip.left}px` }"
         role="presentation"
       >
-        <p class="mb-1 font-semibold text-white">{{ tooltipLabels?.[tip.i] ?? labels[tip.i] }}</p>
-        <p v-for="s in series" :key="s.name" class="flex items-center gap-2 whitespace-nowrap text-white/85">
+        <p class="mb-1 font-semibold text-fg">{{ tooltipLabels?.[tip.i] ?? labels[tip.i] }}</p>
+        <p v-for="s in series" :key="s.name" class="flex items-center gap-2 whitespace-nowrap text-fg/85">
           <span class="size-2 rounded-sm" :style="{ background: s.color }" />{{ s.name }}
-          <span class="ml-auto pl-3 font-mono text-white">{{ fmt(s.values[tip.i] ?? 0) }}</span>
+          <span class="ml-auto pl-3 font-mono text-fg">{{ fmt(s.values[tip.i] ?? 0) }}</span>
         </p>
       </div>
     </div>
     <details class="mt-2 text-xs text-muted">
-      <summary class="inline-flex min-h-11 cursor-pointer items-center font-mono tracking-wider uppercase hover:text-white" data-testid="chart-table-toggle">Ver tabela</summary>
+      <summary class="inline-flex min-h-11 cursor-pointer items-center font-mono tracking-wider uppercase hover:text-fg" data-testid="chart-table-toggle">Ver tabela</summary>
       <div class="mt-2 max-h-56 overflow-auto">
         <table class="w-full text-left">
           <thead>
@@ -143,7 +143,7 @@ const tip = computed(() => {
               <th v-for="s in series" :key="s.name" scope="col" class="py-1 pr-3 text-right font-medium">{{ s.name }}</th>
             </tr>
           </thead>
-          <tbody class="font-mono text-white/85">
+          <tbody class="font-mono text-fg/85">
             <tr v-for="(l, i) in labels" :key="l" class="border-t border-line">
               <th scope="row" class="py-1 pr-3 font-normal">{{ tooltipLabels?.[i] ?? l }}</th>
               <td v-for="s in series" :key="s.name" class="py-1 pr-3 text-right">{{ fmt(s.values[i] ?? 0) }}</td>

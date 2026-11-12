@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { feedTotal, navTo, trackErrors } from './helpers.ts'
+import { feedTotal, navTo, openFilters, trackErrors } from './helpers.ts'
 
 // Every action of the dashboard against the real API (Postgres + NATS).
 // Mutating tests clean up after themselves (sources are deleted, settings
@@ -26,11 +26,13 @@ test.describe('feed actions', () => {
     await page.getByTestId('clear-filters').click()
     await expect(page).not.toHaveURL(/tag=/)
 
+    await openFilters(page)
     await page.getByTestId('filter-period-all').click()
     await expect(page.getByTestId('filter-period-all')).toHaveAttribute('aria-pressed', 'true')
-    await page.getByTestId('filter-sort-recent').click()
-    await expect(page).toHaveURL(/sort=recent/)
-    await expect(page.getByTestId('filter-sort-recent')).toHaveAttribute('aria-pressed', 'true')
+    // The list defaults to the most recent; "Maior nota" re-sorts it.
+    await page.getByTestId('filter-sort-score').click()
+    await expect(page).toHaveURL(/sort=score/)
+    await expect(page.getByTestId('filter-sort-score')).toHaveAttribute('aria-pressed', 'true')
     const firstSource = await page.getByTestId('filter-source').locator('option').nth(1).getAttribute('value')
     await page.getByTestId('filter-source').selectOption(firstSource!)
     await expect(page).toHaveURL(new RegExp(`source_id=${firstSource}`))
@@ -43,8 +45,11 @@ test.describe('feed actions', () => {
     await expect(page.getByTestId('feed-empty').or(page.getByTestId('feed-card').first())).toBeVisible()
     await page.getByTestId('clear-filters').click()
 
-    // Search narrows the results.
+    // Search (round search button) narrows the results.
     await page.goto('/?period=all')
+    await expect(page.getByTestId('filter-search')).toHaveCount(0)
+    await page.getByTestId('open-search').click()
+    await expect(page.getByTestId('filter-search')).toBeFocused()
     await page.getByTestId('filter-search').fill('zzzz-nothing-matches')
     await expect(page).toHaveURL(/q=zzzz-nothing-matches/)
     await expect(page.getByTestId('feed-empty')).toBeVisible()

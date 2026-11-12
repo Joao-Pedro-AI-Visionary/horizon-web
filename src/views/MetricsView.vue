@@ -11,8 +11,8 @@ import SegmentedControl from '../components/SegmentedControl.vue'
 import StatePanel from '../components/StatePanel.vue'
 import { fmtCompact, fmtDateTime, fmtDay, fmtNumber, fmtRelative, fmtScore, kindLabel, shortDay } from '../lib/format'
 
-const SERIES_1 = '#FFD400'
-const SERIES_2 = '#4F8DF7'
+const SERIES_1 = '#276B43'
+const SERIES_2 = '#4F7DF0'
 
 const days = ref(14)
 const dayOptions = [7, 14, 30].map((d) => ({ v: d, l: `${d} dias` }))
@@ -84,11 +84,11 @@ const statusLabel: Record<string, string> = { raw: 'aguardando nota', scored: 'c
 
     <div v-else-if="m" class="transition-opacity duration-200" :class="loading ? 'opacity-50' : ''" data-testid="metrics">
       <!-- Data story: one sentence built from the real numbers -->
-      <p v-reveal="0" class="max-w-5xl py-10 font-display text-2xl leading-snug font-medium tracking-tight text-white/45 md:py-14 md:text-4xl" data-testid="metrics-story">
-        Em <span class="text-white">{{ days }} dias</span> o radar coletou
-        <span class="text-primary">{{ fmtNumber(totals.fetched) }} itens</span>, deu nota a
-        <span class="text-white">{{ fmtNumber(totals.scored) }}</span> e agrupou
-        <span class="text-white">{{ fmtPct(m.dedup.rate) }}</span> como duplicados<template v-if="failures > 0">
+      <p v-reveal="0" class="max-w-5xl py-10 font-display text-2xl leading-snug font-medium tracking-tight text-fg/45 md:py-14 md:text-4xl" data-testid="metrics-story">
+        Em <span class="text-fg">{{ days }} dias</span> o radar coletou
+        <span class="text-accent">{{ fmtNumber(totals.fetched) }} itens</span>, deu nota a
+        <span class="text-fg">{{ fmtNumber(totals.scored) }}</span> e agrupou
+        <span class="text-fg">{{ fmtPct(m.dedup.rate) }}</span> como duplicados<template v-if="failures > 0">
           — com <span class="text-accent">{{ fmtNumber(failures) }} {{ failures === 1 ? 'falha' : 'falhas' }}</span> no caminho</template
         ><template v-else> — sem falhas de coleta</template>.
       </p>
@@ -97,7 +97,7 @@ const statusLabel: Record<string, string> = { raw: 'aguardando nota', scored: 'c
       <dl class="grid grid-cols-2 border-y border-line lg:grid-cols-4">
         <div v-reveal="0" class="py-6 pr-4" data-testid="kpi-fetched">
           <dt class="eyebrow">Coletados</dt>
-          <dd class="mt-2 text-4xl font-bold text-primary md:text-6xl"><CountUp :value="totals.fetched" :format="fmtNumber" /></dd>
+          <dd class="mt-2 text-4xl font-bold text-accent md:text-6xl"><CountUp :value="totals.fetched" :format="fmtNumber" /></dd>
           <dd class="mt-1 text-xs text-muted">{{ fmtNumber(totals.scored) }} com nota</dd>
         </div>
         <div v-reveal="1" class="border-l border-line py-6 pl-4 md:pl-6" data-testid="kpi-dedup">
@@ -153,9 +153,9 @@ const statusLabel: Record<string, string> = { raw: 'aguardando nota', scored: 'c
           <h3 class="mt-6 eyebrow">Itens por status</h3>
           <ul class="mt-3 space-y-3 text-sm">
             <li v-for="([k, v], i) in statusEntries" :key="k">
-              <div class="flex justify-between gap-3"><span class="text-white/85">{{ statusLabel[k] ?? k }}</span><span class="num">{{ fmtNumber(v) }}</span></div>
-              <div class="mt-1 h-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
-                <div class="meter-fill h-full" :class="k === 'failed' ? 'bg-danger' : k === 'duplicate' ? 'bg-accent' : 'bg-white/70'" :style="{ width: `${(v / maxStatus) * 100}%`, '--d': `${i * 60}ms` }" />
+              <div class="flex justify-between gap-3"><span class="text-fg/85">{{ statusLabel[k] ?? k }}</span><span class="num">{{ fmtNumber(v) }}</span></div>
+              <div class="mt-1 h-1 overflow-hidden rounded-full bg-fg/10" aria-hidden="true">
+                <div class="meter-fill h-full" :class="k === 'failed' ? 'bg-danger' : k === 'duplicate' ? 'bg-accent' : 'bg-fg/70'" :style="{ width: `${(v / maxStatus) * 100}%`, '--d': `${i * 60}ms` }" />
               </div>
             </li>
             <li v-if="statusEntries.length === 0" class="text-muted">Sem itens no período.</li>
@@ -174,11 +174,11 @@ const statusLabel: Record<string, string> = { raw: 'aguardando nota', scored: 'c
                   {{ s.name }}
                   <span class="text-xs text-muted">{{ [s.name !== kindLabel[s.kind] ? kindLabel[s.kind] : '', s.enabled ? '' : 'desativada'].filter(Boolean).join(' · ') }}</span>
                 </span>
-                <span class="font-mono text-xs text-muted">média <span class="text-primary">{{ fmtScore(s.avg_score) }}</span></span>
+                <span class="font-mono text-xs text-muted">média <span class="text-accent">{{ fmtScore(s.avg_score) }}</span></span>
               </div>
               <div class="mt-2 flex items-center gap-3">
-                <div class="h-2 flex-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
-                  <div class="meter-fill h-full rounded-full bg-primary" :style="{ width: `${(s.items / maxSourceItems) * 100}%`, '--d': `${i * 70}ms` }" />
+                <div class="h-2 flex-1 overflow-hidden rounded-full bg-fg/10" aria-hidden="true">
+                  <div class="meter-fill h-full rounded-full bg-accent" :style="{ width: `${(s.items / maxSourceItems) * 100}%`, '--d': `${i * 70}ms` }" />
                 </div>
                 <span class="num w-24 shrink-0 text-right text-sm">{{ fmtNumber(s.items) }} itens</span>
               </div>
@@ -216,7 +216,7 @@ const statusLabel: Record<string, string> = { raw: 'aguardando nota', scored: 'c
                 <span class="flex items-center gap-1.5 font-medium"><AppIcon name="alert" :size="14" class="text-accent" />{{ f.source_name }}</span>
                 <time class="num text-xs text-muted" :datetime="f.at">{{ fmtDateTime(f.at) }}</time>
               </p>
-              <p class="mt-1 font-mono text-xs break-all text-white/75">{{ f.error }}</p>
+              <p class="mt-1 font-mono text-xs break-all text-fg/75">{{ f.error }}</p>
             </li>
           </ul>
         </section>

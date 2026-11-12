@@ -70,7 +70,8 @@ async function collect(s: Source) {
       else throw err
     }
     const run = rep.sources[0]
-    if (run && run.status !== 'ok') toasts.error(`${s.name}: ${run.error || 'falha na coleta'}`)
+    if (run && run.status === 'skipped') toasts.info(`${s.name}: coleta pulada${run.error ? ` (${run.error})` : ''}.`)
+    else if (run && run.status !== 'ok') toasts.error(`${s.name}: ${run.error || 'falha na coleta'}`)
     else toasts.success(`${s.name}: ${rep.fetched} coletados, ${rep.published} novos enviados ao worker.`)
     await load()
   } catch (err) {
@@ -233,13 +234,20 @@ onMounted(() => {
               </div>
               <div class="border-l border-line pl-3">
                 <dt class="eyebrow">Status</dt>
-                <dd class="mt-1.5 flex items-center gap-1.5 text-sm" :class="s.last_fetch?.status === 'error' ? 'text-danger' : ''">
-                  <AppIcon v-if="s.last_fetch" :name="s.last_fetch.status === 'ok' ? 'check' : 'alert'" :size="14" :class="s.last_fetch.status === 'ok' ? 'text-ok' : ''" />
-                  {{ !s.last_fetch ? '—' : s.last_fetch.status === 'ok' ? `ok · ${s.last_fetch.item_count}` : 'erro' }}
+                <dd class="mt-1.5 flex items-center gap-1.5 text-sm" :class="s.last_fetch?.status === 'error' ? 'text-danger' : s.last_fetch?.status === 'skipped' ? 'text-muted' : ''" :data-status="s.last_fetch?.status" data-testid="source-status">
+                  <AppIcon v-if="s.last_fetch" :name="s.last_fetch.status === 'ok' ? 'check' : s.last_fetch.status === 'skipped' ? 'clock' : 'alert'" :size="14" :class="s.last_fetch.status === 'ok' ? 'text-ok' : ''" />
+                  {{ !s.last_fetch ? '—' : s.last_fetch.status === 'ok' ? `ok · ${s.last_fetch.item_count}` : s.last_fetch.status === 'skipped' ? 'pulada' : 'erro' }}
                 </dd>
               </div>
             </dl>
-            <p v-if="s.last_fetch?.error" class="mt-3 rounded-md bg-danger/10 p-3 text-xs break-words text-danger sm:ml-10">{{ s.last_fetch.error }}</p>
+            <p
+              v-if="s.last_fetch?.error"
+              class="mt-3 rounded-2xl p-3 text-xs break-words sm:ml-10"
+              :class="s.last_fetch.status === 'skipped' ? 'bg-ink text-muted' : 'bg-danger/10 text-danger'"
+              data-testid="source-fetch-note"
+            >
+              <span v-if="s.last_fetch.status === 'skipped'" class="font-semibold">Coleta pulada: </span>{{ s.last_fetch.error }}
+            </p>
 
             <div class="mt-4 flex flex-wrap gap-2 sm:ml-10">
               <button type="button" class="btn-primary" :disabled="!!busy[s.id] || !s.enabled" :title="s.enabled ? undefined : 'Ative a fonte para coletar'" data-testid="source-fetch" @click="collect(s)">
@@ -257,7 +265,7 @@ onMounted(() => {
               <dl class="dz-group grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                 <div v-for="[k, v] in configEntries(s)" :key="k" class="min-w-0">
                   <dt class="label mb-0.5">config.{{ k }}</dt>
-                  <dd class="font-mono text-xs break-all text-white/85">{{ v }}</dd>
+                  <dd class="font-mono text-xs break-all text-fg/85">{{ v }}</dd>
                 </div>
                 <div>
                   <dt class="label mb-0.5">ID · tipo</dt>
@@ -283,7 +291,7 @@ onMounted(() => {
 
       <!-- Settings -->
       <section class="card-float h-fit p-5 md:p-6 xl:sticky xl:top-24 xl:col-span-4" aria-labelledby="settings-h" data-testid="settings">
-        <p class="eyebrow text-primary">Configuração</p>
+        <p class="eyebrow text-accent">Configuração</p>
         <h2 id="settings-h" class="mt-1 font-display text-2xl font-bold tracking-tight">Digest e nota de corte</h2>
         <div v-if="settingsLoading && !settings" class="mt-5 space-y-3" data-testid="settings-loading" aria-hidden="true">
           <div v-for="i in 4" :key="i" class="skeleton h-11" />
@@ -293,9 +301,9 @@ onMounted(() => {
           <div>
             <div class="flex items-end justify-between">
               <label for="st-th" class="label">Nota de corte</label>
-              <span class="num text-3xl leading-none font-bold text-primary" aria-hidden="true">{{ Number(draft.score_threshold).toFixed(1) }}</span>
+              <span class="num text-3xl leading-none font-bold text-accent" aria-hidden="true">{{ Number(draft.score_threshold).toFixed(1) }}</span>
             </div>
-            <input id="st-th" v-model.number="draft.score_threshold" type="range" min="0" max="10" step="0.5" class="h-11 w-full cursor-pointer accent-primary" :aria-valuetext="`${draft.score_threshold} de 10`" aria-describedby="st-th-h" data-testid="settings-threshold" />
+            <input id="st-th" v-model.number="draft.score_threshold" type="range" min="0" max="10" step="0.5" class="h-11 w-full cursor-pointer accent-accent" :aria-valuetext="`${draft.score_threshold} de 10`" aria-describedby="st-th-h" data-testid="settings-threshold" />
             <p id="st-th-h" class="text-xs text-muted">Só itens com nota ≥ corte entram no digest.</p>
           </div>
           <div class="grid grid-cols-2 gap-3">

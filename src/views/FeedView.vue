@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ApiError, api, errorMessage } from '../api/client'
 import type { CollectReport, FeedItem, FeedPage, FeedParams, Source, TimelineParams } from '../api/types'
 import AppIcon from '../components/AppIcon.vue'
 import CountUp from '../components/CountUp.vue'
 import DisclosurePanel from '../components/DisclosurePanel.vue'
-import PageHeader from '../components/PageHeader.vue'
-import ScoreBadge from '../components/ScoreBadge.vue'
+import NewsCard from '../components/NewsCard.vue'
+import PopularDeck from '../components/PopularDeck.vue'
 import SegmentedControl from '../components/SegmentedControl.vue'
 import StatePanel from '../components/StatePanel.vue'
 import TimelineScrubber from '../components/TimelineScrubber.vue'
-import { fmtNumber, fmtRelative, fmtScore, hostOf } from '../lib/format'
-import { reducedMotion, staggerDelay } from '../lib/motion'
+import { fmtNumber, fmtScore, fmtToday } from '../lib/format'
+import { reducedMotion } from '../lib/motion'
+import { rankTags } from '../lib/tags'
 import { useToasts } from '../stores/toast'
 
 const route = useRoute()
@@ -30,11 +31,13 @@ const filters = computed<FeedParams>(() => {
     q: (q.q as string) || undefined,
     tag: (q.tag as string) || undefined,
     source_id: num(q.source_id),
-    period: from ? undefined : (((q.period as string) || '7d') as FeedParams['period']),
+    // Default: the whole history (the collector may not have run this week).
+    period: from ? undefined : (((q.period as string) || 'all') as FeedParams['period']),
     from,
     to: from ? (q.to as string) || undefined : undefined,
     min_score: num(q.min_score),
-    sort: ((q.sort as string) || 'score') as FeedParams['sort'],
+    // The list is a news feed (most recent first); "Em alta" holds the top scores.
+    sort: ((q.sort as string) || 'recent') as FeedParams['sort'],
     page: num(q.page) ?? 1,
     page_size: PAGE_SIZE,
   }
@@ -53,17 +56,16 @@ const periods = [
   { v: '30d', l: '30 dias' },
   { v: 'all', l: 'Tudo' },
 ] as const
-const periodLabel: Record<string, string> = { '24h': 'últimas 24h', '7d': '7 dias', '30d': '30 dias', all: 'todo o período', range: 'faixa de datas' }
 const sorts = [
-  { v: 'score', l: 'Maior nota' },
   { v: 'recent', l: 'Recentes' },
+  { v: 'score', l: 'Maior nota' },
 ] as const
 
 // Source, tag and minimum score sit in a disclosure (progressive
 // disclosure); it opens by itself when one of them becomes active.
 const advancedCount = computed(() => {
   const f = filters.value
-  return [f.tag, f.source_id, f.min_score].filter(Boolean).length
+  return [f.tag, f.source_id, f.min_score, f.from].filter(Boolean).length
 })
 const filtersOpen = ref(advancedCount.value > 0)
 watch(advancedCount, (n, old) => {
@@ -82,6 +84,19 @@ function clearRange() {
   setFilter({ from: undefined, to: undefined })
 }
 
+// Search (the round search button of the shot): server-side, GET /api/feed?q=.
+const searchOpen = ref(!!filters.value.q)
+const searchInput = ref<HTMLInputElement | null>(null)
+async function openSearch() {
+  searchOpen.value = true
+  await nextTick()
+  searchInput.value?.focus()
+}
+function closeSearch() {
+  searchText.value = ''
+  setFilter({ q: undefined })
+  searchOpen.value = false
+}
 const searchText = ref(filters.value.q ?? '')
 let debounce: ReturnType<typeof setTimeout> | undefined
 watch(searchText, (v) => {
@@ -118,7 +133,52 @@ async function load() {
     loading.value = false
   }
 }
+// "Em alta" deck: the top-scored items under the same filters.
+const popular = ref<FeedItem[]>([])
+let pctrl: AbortController | undefined
+async function loadPopular() {
+  pctrl?.abort()
+  pctrl = new AbortController()
+  try {
+    popular.value = (await api.feed(popularParams(), pctrl.signal)).items ?? []
+  } catch (err) {
+    if ((err as Error).name !== 'AbortError') popular.value = []
+  }
+}
+// Popular only depends on the filters, not on the list's order or page.
+function popularParams(): FeedParams {
+  const f = filters.value
+  return { q: f.q, tag: f.tag, source_id: f.source_id, period: f.period, from: f.from, to: f.to, min_score: f.min_score, sort: 'score', page: 1, page_size: 5 }
+}
+const popularKey = computed(() => JSON.stringify(popularParams()))
 watch(filters, load, { deep: true })
+watch(popularKey, loadPopular)
+
+// Category chips: "Todas" plus the most frequent real tags of the feed.
+const topTags = ref<string[]>([])
+async function loadTags() {
+  try {
+    topTags.value = rankTags((await api.feed({ period: 'all', sort: 'score', page: 1, page_size: 100 })).items ?? [], 6)
+  } catch {
+    topTags.value = []
+  }
+}
+const chips = computed(() => {
+  const t = filters.value.tag
+  return t && !topTags.value.includes(t) ? [t, ...topTags.value] : topTags.value
+})
+function toggleTag(t: string | undefined) {
+  setFilter({ tag: t && filters.value.tag !== t ? t : undefined })
+}
+
+// "Ver todas": the list switches to the highest scores and takes the focus.
+const listHeading = ref<HTMLElement | null>(null)
+async function seeAllPopular() {
+  if (filters.value.sort !== 'score') setFilter({ sort: 'score' })
+  await nextTick()
+  listHeading.value?.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' })
+  listHeading.value?.focus({ preventScroll: true })
+}
 
 // Filter changes keep the scroll position (router scrollBehavior); only the
 // pagination buttons bring the top of the list back into view.
@@ -133,6 +193,8 @@ const threshold = ref(6)
 const thresholdLoaded = ref(false)
 onMounted(async () => {
   load()
+  loadPopular()
+  loadTags()
   const [s, st] = await Promise.allSettled([api.sources(), api.settings()])
   if (s.status === 'fulfilled') sources.value = s.value.sources ?? []
   if (st.status === 'fulfilled') {
@@ -140,20 +202,18 @@ onMounted(async () => {
     thresholdLoaded.value = true
   }
 })
-onUnmounted(() => ctrl?.abort())
+onUnmounted(() => {
+  ctrl?.abort()
+  pctrl?.abort()
+})
 
 const items = computed<FeedItem[]>(() => page.value?.items ?? [])
-// Page 1 opens with a lead story (the top item); the rest is a numbered list.
-const lead = computed(() => (filters.value.page === 1 ? items.value[0] : undefined))
-const rest = computed(() => (lead.value ? items.value.slice(1) : items.value))
-const offset = computed(() => ((filters.value.page ?? 1) - 1) * PAGE_SIZE)
 const totalPages = computed(() => (page.value ? Math.max(1, Math.ceil(page.value.total / page.value.page_size)) : 1))
 const enabledSources = computed(() => sources.value.filter((s) => s.enabled).length)
 const hasFilters = computed(() => {
   const f = filters.value
-  return !!(f.q || f.tag || f.source_id || f.min_score || f.from || f.period !== '7d')
+  return !!(f.q || f.tag || f.source_id || f.min_score || f.from || f.period !== 'all')
 })
-const pad2 = (n: number) => String(n).padStart(2, '0')
 
 // Pipeline run (POST /api/pipeline/run): collects every enabled source and
 // publishes to NATS; the worker scores and dedups before items reach the feed.
@@ -175,105 +235,158 @@ async function runPipeline() {
     running.value = false
   }
   load()
+  loadPopular()
+  loadTags()
 }
+const today = fmtToday()
+const runLabel: Record<string, string> = { ok: 'ok', skipped: 'pulada', error: 'erro' }
 const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates: 'Já vistos', invalid: 'Inválidos' } as const
 </script>
 
 <template>
-  <div>
-    <PageHeader index="01" section="Feed" title="O que importa hoje" :muted="1" lead="Notícias de HN, Reddit e RSS ranqueadas pela nota do LLM local — uma por cluster de duplicados.">
-      <template #meta>{{ periodLabel[filters.from ? 'range' : (filters.period ?? '7d')] }} · ordem {{ filters.sort === 'recent' ? 'recente' : 'nota' }}</template>
-      <template #actions>
-        <button type="button" class="btn-primary group" :disabled="running" :aria-busy="running" data-testid="run-pipeline" @click="runPipeline">
-          <AppIcon :name="running ? 'refresh' : 'play'" :size="16" :class="running ? 'animate-spin' : ''" />
-          {{ running ? 'Coletando fontes…' : 'Rodar pipeline' }}
+  <div class="pt-2 md:pt-6">
+    <!-- Header: date line, title, round actions (shot: "News Hub") -->
+    <header class="flex items-start justify-between gap-4">
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-muted"><time :datetime="new Date().toISOString().slice(0, 10)">{{ today }}</time></p>
+        <h1 class="display-xl mt-1">Central de notícias</h1>
+      </div>
+      <div class="flex shrink-0 gap-2 pt-1">
+        <button
+          type="button"
+          class="btn-icon"
+          :aria-expanded="searchOpen"
+          aria-controls="feed-search"
+          aria-label="Buscar notícias"
+          title="Buscar"
+          data-testid="open-search"
+          @click="searchOpen ? closeSearch() : openSearch()"
+        >
+          <AppIcon :name="searchOpen ? 'close' : 'search'" :size="19" />
         </button>
-      </template>
-    </PageHeader>
+        <button
+          type="button"
+          class="btn-icon"
+          :disabled="running"
+          :aria-busy="running"
+          :aria-label="running ? 'Coletando fontes…' : 'Rodar pipeline (coletar fontes agora)'"
+          :title="running ? 'Coletando fontes…' : 'Rodar pipeline'"
+          data-testid="run-pipeline"
+          @click="runPipeline"
+        >
+          <AppIcon name="refresh" :size="19" :class="running ? 'animate-spin' : ''" />
+        </button>
+      </div>
+    </header>
 
-    <!-- Corner stats (real numbers from /api/feed, /api/sources, /api/settings) -->
-    <dl class="grid grid-cols-3 border-b border-line" aria-label="Resumo do feed">
-      <div v-reveal="0" class="py-5 pr-3 md:py-7">
-        <dt class="eyebrow">Itens no feed</dt>
-        <dd class="mt-2 text-3xl font-bold md:text-5xl" data-testid="feed-total">
-          <CountUp v-if="page" :value="page.total" :format="fmtNumber" /><span v-else class="num text-muted">—</span>
-        </dd>
+    <!-- Search -->
+    <Transition name="drop">
+      <form v-if="searchOpen" id="feed-search" role="search" class="mt-5" @submit.prevent>
+        <label for="f-search" class="sr-only">Buscar no feed</label>
+        <div class="relative">
+          <AppIcon name="search" :size="18" class="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted" />
+          <input
+            id="f-search"
+            ref="searchInput"
+            v-model="searchText"
+            type="search"
+            class="field min-h-12 rounded-full pl-11 text-base shadow-[var(--shadow-float)]"
+            placeholder="Buscar por título, resumo ou motivo da nota…"
+            maxlength="200"
+            enterkeyhint="search"
+            data-testid="filter-search"
+            @keydown.esc="closeSearch"
+          />
+        </div>
+      </form>
+    </Transition>
+
+    <!-- Category chips: real tags (GET /api/feed?tag=) -->
+    <div class="chip-row mt-6" role="group" aria-label="Filtrar por tag" data-testid="chips">
+      <button type="button" class="news-chip" :aria-pressed="!filters.tag" data-testid="chip-all" @click="toggleTag(undefined)">Todas</button>
+      <button v-for="t in chips" :key="t" type="button" class="news-chip" :aria-pressed="filters.tag === t" data-testid="chip-tag" :data-tag="t" @click="toggleTag(t)">
+        {{ t }}
+      </button>
+    </div>
+
+    <!-- Summary (real numbers from /api/feed, /api/sources, /api/settings) -->
+    <dl class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted" aria-label="Resumo do feed">
+      <div class="flex items-baseline gap-1.5">
+        <dt class="sr-only">Notícias no feed</dt>
+        <dd class="font-display text-base font-bold text-fg" data-testid="feed-total"><CountUp v-if="page" :value="page.total" :format="fmtNumber" /><span v-else>—</span></dd>
+        <span aria-hidden="true">notícias</span>
       </div>
-      <div v-reveal="1" class="border-l border-line py-5 pr-3 pl-4 md:py-7 md:pl-6">
-        <dt class="eyebrow">Fontes ativas</dt>
-        <dd class="mt-2 text-3xl font-bold md:text-5xl"><CountUp :value="enabledSources" /><span class="num text-lg text-muted md:text-2xl">/{{ sources.length }}</span></dd>
+      <div class="flex items-baseline gap-1.5">
+        <dt class="sr-only">Fontes ativas</dt>
+        <dd class="font-semibold text-fg tabular-nums">{{ enabledSources }}/{{ sources.length }}</dd>
+        <span aria-hidden="true">fontes ativas</span>
       </div>
-      <div v-reveal="2" class="border-l border-line py-5 pl-4 md:py-7 md:pl-6">
-        <dt class="eyebrow">Nota de corte</dt>
-        <dd class="mt-2 text-3xl font-bold text-primary md:text-5xl"><span class="num">{{ thresholdLoaded ? fmtScore(threshold) : '—' }}</span></dd>
+      <div class="flex items-baseline gap-1.5">
+        <dt>Corte do digest</dt>
+        <dd class="font-semibold text-accent tabular-nums">{{ thresholdLoaded ? fmtScore(threshold) : '—' }}</dd>
       </div>
     </dl>
 
     <!-- Last pipeline report -->
     <Transition name="drop">
-      <section v-if="report" class="card-float mt-6 p-5" aria-labelledby="report-title" data-testid="pipeline-report">
+      <section v-if="report" class="news-card mt-6" aria-labelledby="report-title" data-testid="pipeline-report">
         <div class="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <p class="eyebrow text-primary">Relatório da coleta</p>
-            <h2 id="report-title" class="mt-1 font-display text-xl font-semibold">Última coleta <span class="num text-xs font-normal text-muted">{{ report.run_id }}</span></h2>
+            <p class="eyebrow text-accent">Relatório da coleta</p>
+            <h2 id="report-title" class="mt-1 font-display text-xl font-bold">Última coleta <span class="num text-xs font-normal text-muted">{{ report.run_id }}</span></h2>
           </div>
           <button type="button" class="btn-icon" aria-label="Fechar relatório" data-testid="close-report" @click="report = null">
             <AppIcon name="close" :size="16" />
           </button>
         </div>
-        <dl class="mt-4 grid grid-cols-2 border-t border-line sm:grid-cols-4">
-          <div v-for="(k, i) in (['fetched', 'published', 'duplicates', 'invalid'] as const)" :key="k" class="border-line py-3 pr-3" :class="i % 2 === 1 ? 'border-l pl-4' : i === 2 ? 'sm:border-l sm:pl-4' : ''">
+        <dl class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div v-for="k in (['fetched', 'published', 'duplicates', 'invalid'] as const)" :key="k" class="rounded-2xl bg-ink px-4 py-3">
             <dt class="eyebrow">{{ reportLabels[k] }}</dt>
-            <dd class="mt-1 text-3xl font-bold"><CountUp :value="report[k]" /></dd>
+            <dd class="mt-1 font-display text-3xl font-bold"><CountUp :value="report[k]" /></dd>
           </div>
         </dl>
-        <ul class="mt-3 flex flex-wrap gap-2">
-          <li v-for="s in report.sources" :key="s.source_id" class="chip" :class="s.status === 'ok' ? '' : 'border-danger/50 text-danger'" :title="s.error || undefined">
-            {{ s.source_name }} · {{ s.status === 'ok' ? `${s.item_count} itens` : 'erro' }}
+        <ul class="flex flex-wrap gap-2">
+          <li
+            v-for="s in report.sources"
+            :key="s.source_id"
+            class="chip"
+            :class="s.status === 'ok' ? 'border-accent/30 text-accent' : s.status === 'skipped' ? 'text-muted' : 'border-danger/40 text-danger'"
+            :title="s.error || undefined"
+            :data-status="s.status"
+          >
+            {{ s.source_name }} · {{ s.status === 'ok' ? `${s.item_count} itens` : (runLabel[s.status] ?? s.status) }}
           </li>
         </ul>
-        <p class="mt-3 text-xs text-muted">Os itens novos entram no feed depois que o worker dá a nota e faz o dedup.</p>
+        <p class="text-xs text-muted">Os itens novos entram no feed depois que o worker dá a nota e faz o dedup.</p>
       </section>
     </Transition>
 
-    <!-- Filters -->
-    <section class="mt-6 flex flex-col gap-4" aria-label="Filtros do feed">
-      <div class="grid gap-3 sm:grid-cols-2 lg:flex lg:items-end">
-        <div class="sm:col-span-2 lg:flex-1">
-          <label for="f-search" class="label">Busca</label>
-          <div class="relative">
-            <AppIcon name="search" :size="16" class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-            <input id="f-search" v-model="searchText" type="search" class="field pl-9" placeholder="Título, resumo ou motivo…" maxlength="200" data-testid="filter-search" />
-          </div>
-        </div>
-        <div>
-          <span id="f-period-l" class="label">Período</span>
-          <SegmentedControl
-            :options="periods"
-            :model-value="filters.from ? undefined : filters.period"
-            labelledby="f-period-l"
-            testid="filter-period"
-            block
-            @update:model-value="setFilter({ period: $event, from: undefined, to: undefined })"
-          />
-        </div>
-        <div>
-          <span id="f-sort-l" class="label">Ordem</span>
-          <SegmentedControl :options="sorts" :model-value="filters.sort" labelledby="f-sort-l" testid="filter-sort" block @update:model-value="setFilter({ sort: $event })" />
-        </div>
-      </div>
-
-      <TimelineScrubber :params="timelineParams" :from="filters.from" :to="filters.to" :period="filters.period" @range="setRange" @clear="clearRange" />
-
+    <!-- More filters (progressive disclosure) -->
+    <section class="mt-5 flex flex-col gap-3" aria-label="Filtros do feed">
       <DisclosurePanel v-model:open="filtersOpen" title="Mais filtros" testid="filters" tone="float" region>
         <template #summary>
-          <span class="flex flex-wrap items-center gap-x-2 font-display text-sm font-semibold">
+          <span class="flex flex-wrap items-center gap-x-2 font-display text-sm font-bold">
             <AppIcon name="filter" :size="16" class="text-muted" /> Mais filtros
-            <span class="font-mono text-xs font-normal text-muted max-sm:hidden">fonte · tag · nota mínima</span>
-            <span v-if="advancedCount" class="rounded-full bg-primary px-2 font-mono text-xs text-ink" data-testid="filters-count">{{ advancedCount }}</span>
+            <span class="text-xs font-medium text-muted max-sm:hidden">período · ordem · fonte · tag · nota mínima · linha do tempo</span>
+            <span v-if="advancedCount" class="rounded-full bg-primary px-2 text-xs text-ink" data-testid="filters-count">{{ advancedCount }}</span>
           </span>
         </template>
         <div class="dz-group grid gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+          <div class="sm:col-span-2 lg:col-span-6">
+            <span id="f-period-l" class="label">Período</span>
+            <SegmentedControl
+              :options="periods"
+              :model-value="filters.from ? undefined : filters.period"
+              labelledby="f-period-l"
+              testid="filter-period"
+              block
+              @update:model-value="setFilter({ period: $event, from: undefined, to: undefined })"
+            />
+          </div>
+          <div class="sm:col-span-2 lg:col-span-6">
+            <span id="f-sort-l" class="label">Ordem da lista</span>
+            <SegmentedControl :options="sorts" :model-value="filters.sort" labelledby="f-sort-l" testid="filter-sort" block @update:model-value="setFilter({ sort: $event })" />
+          </div>
           <div class="lg:col-span-3">
             <label for="f-source" class="label">Fonte</label>
             <select id="f-source" class="field cursor-pointer" :value="filters.source_id ?? ''" data-testid="filter-source" @change="setFilter({ source_id: ($event.target as HTMLSelectElement).value || undefined })">
@@ -297,7 +410,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
           <div class="sm:col-span-2 lg:col-span-6">
             <div class="flex items-center justify-between">
               <label for="f-min" class="label">Nota mínima</label>
-              <span class="num -mt-1 text-sm text-primary" aria-hidden="true">{{ minScore.toFixed(1) }}</span>
+              <span class="-mt-1 text-sm font-semibold text-accent tabular-nums" aria-hidden="true">{{ minScore.toFixed(1) }}</span>
             </div>
             <input
               id="f-min"
@@ -306,168 +419,82 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
               min="0"
               max="10"
               step="0.5"
-              class="h-11 w-full cursor-pointer accent-primary"
+              class="h-11 w-full cursor-pointer accent-accent"
               :aria-valuetext="`${minScore} de 10`"
               data-testid="filter-min-score"
               @change="setFilter({ min_score: minScore > 0 ? minScore : undefined })"
             />
           </div>
+          <div class="sm:col-span-2 lg:col-span-12">
+            <TimelineScrubber :params="timelineParams" :from="filters.from" :to="filters.to" :period="filters.period" @range="setRange" @clear="clearRange" />
+          </div>
         </div>
       </DisclosurePanel>
-      <div v-if="hasFilters" class="-mt-1 flex justify-end">
+      <div v-if="hasFilters" class="flex justify-end">
         <button type="button" class="btn-ghost" data-testid="clear-filters" @click="router.replace({ query: {} })">
           <AppIcon name="close" :size="14" /> Limpar filtros
         </button>
       </div>
     </section>
 
-    <!-- Results -->
-    <section ref="results" class="mt-8 scroll-mt-24" aria-label="Itens do feed" :aria-busy="loading">
-      <div v-if="loading && !page" data-testid="feed-loading" aria-hidden="true">
-        <div class="grid gap-6 border-t border-line py-8 lg:grid-cols-12">
-          <div class="skeleton h-28 w-40 lg:col-span-3" />
-          <div class="space-y-3 lg:col-span-9">
-            <div class="skeleton h-10 w-3/4" />
-            <div class="skeleton h-5 w-full" />
-            <div class="skeleton h-5 w-2/3" />
-          </div>
-        </div>
-        <div v-for="i in 5" :key="i" class="flex gap-5 border-t border-line py-6">
-          <div class="skeleton h-10 w-16 shrink-0" />
-          <div class="flex-1 space-y-3">
-            <div class="skeleton h-6 w-2/3" />
-            <div class="skeleton h-4 w-full" />
-          </div>
-        </div>
-      </div>
-      <StatePanel v-else-if="error" kind="error" title="Não foi possível carregar o feed" :detail="error" @retry="load" />
-      <StatePanel
-        v-else-if="items.length === 0"
-        kind="empty"
-        :title="hasFilters ? 'Nenhum item com esses filtros' : 'O feed ainda está vazio'"
-        :detail="hasFilters ? 'Afrouxe a nota mínima, troque o período ou limpe os filtros.' : 'Rode o pipeline para coletar as fontes ativas; o worker dá a nota e publica no feed.'"
-        testid="feed-empty"
-      >
-        <button v-if="hasFilters" type="button" class="btn-ghost" data-testid="empty-clear" @click="router.replace({ query: {} })">Limpar filtros</button>
-      </StatePanel>
+    <StatePanel v-if="error && !page" class="mt-8" kind="error" title="Não foi possível carregar o feed" :detail="error" @retry="load" />
 
-      <template v-else>
-        <div class="transition-opacity duration-200" :class="loading ? 'opacity-50' : ''" data-testid="feed-list">
-          <!-- Lead story -->
-          <article v-if="lead" :key="`lead-${lead.item_id}`" v-reveal="0" class="grid gap-6 border-t-2 border-primary py-8 md:py-10 lg:grid-cols-12" data-testid="feed-card">
-            <div class="flex items-start justify-between gap-4 lg:col-span-3 lg:flex-col">
-              <div>
-                <p class="eyebrow mb-3">Nº 01 · manchete</p>
-                <ScoreBadge :score="lead.score" :threshold="threshold" size="xl" delay="250ms" />
-              </div>
-            </div>
-            <div class="min-w-0 lg:col-span-9">
-              <p class="flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
-                <span class="text-white/85">{{ lead.source_name }}</span><span aria-hidden="true">/</span><span>{{ hostOf(lead.url) }}</span><span aria-hidden="true">/</span>
-                <time :datetime="lead.published_at ?? lead.projected_at">{{ fmtRelative(lead.published_at ?? lead.projected_at) }}</time>
-              </p>
-              <h2 class="display-lg mt-3 break-words">
-                <RouterLink :to="`/items/${lead.item_id}`" class="decoration-primary decoration-2 underline-offset-[6px] transition-colors duration-200 hover:text-primary" data-testid="open-item">{{ lead.title }}</RouterLink>
-              </h2>
-              <p v-if="lead.summary" class="mt-4 max-w-3xl text-lg text-white/80">{{ lead.summary }}</p>
-              <blockquote v-if="lead.score_reason" class="mt-5 max-w-3xl border-l-2 border-primary pl-4 text-sm text-white/70">
-                <span class="eyebrow mb-1 block text-primary">Por que essa nota</span>{{ lead.score_reason }}
-              </blockquote>
-              <div class="mt-5 flex flex-wrap items-center gap-2">
-                <button
-                  v-for="t in (lead.tags ?? []).slice(0, 5)"
-                  :key="t"
-                  type="button"
-                  class="chip cursor-pointer hover:border-primary/60 hover:text-primary"
-                  :class="filters.tag === t ? 'border-primary text-primary' : ''"
-                  :aria-label="`Filtrar pela tag ${t}`"
-                  data-testid="tag-chip"
-                  @click="setFilter({ tag: t })"
-                >
-                  #{{ t }}
-                </button>
-                <RouterLink v-if="lead.duplicate_count > 0" :to="`/items/${lead.item_id}`" class="chip border-accent/50 text-accent" data-testid="dup-chip">
-                  <AppIcon name="layers" :size="12" /> +{{ lead.duplicate_count }} {{ lead.duplicate_count === 1 ? 'duplicado' : 'duplicados' }}
-                </RouterLink>
-                <a
-                  :href="lead.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn-ghost group ml-auto"
-                  :aria-label="`Abrir original: ${lead.title} (nova aba)`"
-                  data-testid="open-original"
-                >
-                  Original <AppIcon name="external" :size="16" class="nudge" />
-                </a>
-              </div>
-            </div>
-          </article>
+    <div v-else class="mt-8 grid min-h-dvh content-start gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+      <!-- "Em alta" (shot: Popular News + See All) -->
+      <section v-if="popular.length || (loading && !page)" class="min-w-0 lg:sticky lg:top-24 lg:self-start" aria-labelledby="popular-h">
+        <div class="mb-3 flex items-center justify-between gap-3">
+          <h2 id="popular-h" class="font-display text-xl font-bold tracking-tight">Em alta</h2>
+          <button type="button" class="-mr-2 min-h-11 cursor-pointer rounded-full px-3 text-sm font-semibold text-muted hover:text-fg" data-testid="popular-see-all" @click="seeAllPopular">
+            Ver todas<span class="sr-only"> as notícias por maior nota</span>
+          </button>
+        </div>
+        <div v-if="!popular.length" class="skeleton h-72" aria-hidden="true" />
+        <PopularDeck v-else :items="popular" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" />
+      </section>
 
-          <!-- Numbered list -->
-          <ol class="border-t border-line">
-            <li
-              v-for="(it, i) in rest"
-              :key="it.item_id"
-              v-reveal="i"
-              class="group/row grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 border-b border-line py-6 transition-colors duration-200 hover:bg-white/[0.02] md:grid-cols-[3rem_5rem_1fr_auto] md:gap-x-6 md:py-7"
-              data-testid="feed-card"
-            >
-              <span class="num hidden pt-1 text-sm text-muted md:block" aria-hidden="true">{{ pad2(offset + i + (lead ? 2 : 1)) }}</span>
-              <ScoreBadge :score="it.score" :threshold="threshold" size="md" :delay="staggerDelay(i)" />
-              <div class="min-w-0">
-                <p class="flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
-                  <span class="text-white/85">{{ it.source_name }}</span><span aria-hidden="true">/</span><span class="break-all">{{ hostOf(it.url) }}</span><span aria-hidden="true">/</span>
-                  <time :datetime="it.published_at ?? it.projected_at">{{ fmtRelative(it.published_at ?? it.projected_at) }}</time>
-                </p>
-                <h2 class="mt-1.5 font-display text-xl leading-snug font-semibold tracking-tight break-words md:text-2xl">
-                  <RouterLink :to="`/items/${it.item_id}`" class="transition-colors duration-200 hover:text-primary" data-testid="open-item">{{ it.title }}</RouterLink>
-                </h2>
-                <p v-if="it.summary" class="mt-2 line-clamp-2 max-w-3xl text-sm text-white/70">{{ it.summary }}</p>
-                <div class="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    v-for="t in (it.tags ?? []).slice(0, 4)"
-                    :key="t"
-                    type="button"
-                    class="chip cursor-pointer hover:border-primary/60 hover:text-primary"
-                    :class="filters.tag === t ? 'border-primary text-primary' : ''"
-                    :aria-label="`Filtrar pela tag ${t}`"
-                    data-testid="tag-chip"
-                    @click="setFilter({ tag: t })"
-                  >
-                    #{{ t }}
-                  </button>
-                  <RouterLink v-if="it.duplicate_count > 0" :to="`/items/${it.item_id}`" class="chip border-accent/50 text-accent" data-testid="dup-chip">
-                    <AppIcon name="layers" :size="12" /> +{{ it.duplicate_count }} {{ it.duplicate_count === 1 ? 'duplicado' : 'duplicados' }}
-                  </RouterLink>
-                </div>
-              </div>
-              <a
-                :href="it.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="col-start-2 inline-flex size-11 items-center justify-center justify-self-end rounded-md border border-transparent text-muted transition-colors duration-200 hover:border-line hover:text-white md:col-start-auto md:self-start"
-                :aria-label="`Abrir original: ${it.title} (nova aba)`"
-                data-testid="open-original"
-              >
-                <AppIcon name="external" :size="18" />
-              </a>
+      <!-- List -->
+      <section ref="results" class="min-w-0 scroll-mt-24" :class="popular.length || (loading && !page) ? '' : 'lg:col-span-2'" aria-label="Itens do feed" :aria-busy="loading">
+        <div class="mb-3 flex items-baseline justify-between gap-3">
+          <h2 id="list-h" ref="listHeading" tabindex="-1" class="scroll-mt-24 font-display text-xl font-bold tracking-tight" data-testid="list-heading">
+            {{ filters.sort === 'score' ? 'Maior nota' : 'Mais recentes' }}
+          </h2>
+          <p v-if="page && page.total" class="text-sm text-muted tabular-nums">página {{ filters.page }} de {{ totalPages }}</p>
+        </div>
+
+        <div v-if="loading && !page" class="grid gap-4 md:grid-cols-2" data-testid="feed-loading" aria-hidden="true">
+          <div v-for="i in 6" :key="i" class="skeleton h-56" />
+        </div>
+        <StatePanel
+          v-else-if="items.length === 0"
+          kind="empty"
+          :title="hasFilters ? 'Nenhuma notícia com esses filtros' : 'O feed ainda está vazio'"
+          :detail="hasFilters ? 'Afrouxe a nota mínima, troque o período ou limpe os filtros.' : 'Rode o pipeline para coletar as fontes ativas; o worker dá a nota e publica no feed.'"
+          testid="feed-empty"
+        >
+          <button v-if="hasFilters" type="button" class="btn-ghost" data-testid="empty-clear" @click="router.replace({ query: {} })">Limpar filtros</button>
+        </StatePanel>
+
+        <template v-else>
+          <ul class="grid gap-4 transition-opacity duration-200 md:grid-cols-2" :class="[loading ? 'opacity-50' : '', popular.length ? '' : 'xl:grid-cols-3']" data-testid="feed-list">
+            <li v-for="(it, i) in items" :key="it.item_id" class="grid">
+              <NewsCard v-reveal="i" :item="it" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" />
             </li>
-          </ol>
-        </div>
+          </ul>
 
-        <nav class="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-3" aria-label="Paginação" data-testid="pagination">
-          <button type="button" class="btn-ghost group justify-self-start" :disabled="filters.page! <= 1 || loading" data-testid="page-prev" @click="goPage(filters.page! - 1)">
-            <AppIcon name="chevronLeft" :size="16" /> Anterior
-          </button>
-          <p class="num text-sm text-muted" aria-live="polite">
-            <span class="sr-only">Página {{ filters.page }} de {{ totalPages }}</span>
-            <span aria-hidden="true"><span class="text-xl text-white">{{ pad2(filters.page ?? 1) }}</span> / {{ pad2(totalPages) }}</span>
-          </p>
-          <button type="button" class="btn-ghost group justify-self-end" :disabled="filters.page! >= totalPages || loading" data-testid="page-next" @click="goPage(filters.page! + 1)">
-            Próxima <AppIcon name="chevronRight" :size="16" class="nudge" />
-          </button>
-        </nav>
-      </template>
-    </section>
+          <nav class="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-3" aria-label="Paginação" data-testid="pagination">
+            <button type="button" class="btn-ghost group justify-self-start" :disabled="filters.page! <= 1 || loading" data-testid="page-prev" @click="goPage(filters.page! - 1)">
+              <AppIcon name="chevronLeft" :size="16" /> Anterior
+            </button>
+            <p class="text-sm text-muted tabular-nums" aria-live="polite">
+              <span class="sr-only">Página {{ filters.page }} de {{ totalPages }}</span>
+              <span aria-hidden="true"><span class="font-display text-lg font-bold text-fg">{{ filters.page ?? 1 }}</span> / {{ totalPages }}</span>
+            </p>
+            <button type="button" class="btn-ghost group justify-self-end" :disabled="filters.page! >= totalPages || loading" data-testid="page-next" @click="goPage(filters.page! + 1)">
+              Próxima <AppIcon name="chevronRight" :size="16" class="nudge" />
+            </button>
+          </nav>
+        </template>
+      </section>
+    </div>
   </div>
 </template>

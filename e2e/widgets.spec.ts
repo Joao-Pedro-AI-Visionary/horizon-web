@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { trackErrors } from './helpers.ts'
+import { openFilters, trackErrors } from './helpers.ts'
 
 // R2 widgets against the real API: date scrubber (GET /api/feed/timeline +
 // from/to on /api/feed), segmented controls with a sliding pill, and
@@ -26,6 +26,7 @@ test.describe('segmented control', () => {
   test('pill slides to the pressed option; arrows select; metrics range', async ({ page }) => {
     const t = trackErrors(page)
     await page.goto('/?period=all')
+    await openFilters(page)
     const pill = page.getByTestId('filter-period-pill')
     await expectPillUnder(pill, page.getByTestId('filter-period-all'))
     expect(await pill.evaluate((el) => getComputedStyle(el).transitionDuration)).toContain('0.18s')
@@ -36,11 +37,11 @@ test.describe('segmented control', () => {
     await expectPillUnder(pill, page.getByTestId('filter-period-7d'))
 
     // Keyboard: ArrowRight moves focus and selection to the next option.
-    await page.getByTestId('filter-sort-score').focus()
+    await page.getByTestId('filter-sort-recent').focus()
     await page.keyboard.press('ArrowRight')
-    await expect(page).toHaveURL(/sort=recent/)
-    await expect(page.getByTestId('filter-sort-recent')).toBeFocused()
-    await expectPillUnder(page.getByTestId('filter-sort-pill'), page.getByTestId('filter-sort-recent'))
+    await expect(page).toHaveURL(/sort=score/)
+    await expect(page.getByTestId('filter-sort-score')).toBeFocused()
+    await expectPillUnder(page.getByTestId('filter-sort-pill'), page.getByTestId('filter-sort-score'))
 
     await page.goto('/metrics')
     const mPill = page.getByTestId('metrics-days-pill')
@@ -59,6 +60,7 @@ test.describe('date scrubber', () => {
     const tl = page.waitForResponse((r) => r.url().includes('/api/feed/timeline'))
     await page.goto('/?period=all')
     expect((await tl).status()).toBe(200)
+    await openFilters(page)
     await expect(page.getByTestId('scrub-bar')).toHaveCount(30)
 
     const from = page.getByTestId('scrub-from')
@@ -101,8 +103,8 @@ test.describe('date scrubber', () => {
     await page.waitForTimeout(700)
     expect(page.url()).toBe(url)
 
-    // Primary action on the yellow surface: black button clears the range.
-    await expect(page.getByTestId('scrub-clear')).toHaveCSS('background-color', 'rgb(11, 11, 11)')
+    // Primary action on the black surface: white button clears the range.
+    await expect(page.getByTestId('scrub-clear')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
     await page.getByTestId('scrub-clear').click()
     await expect(page).not.toHaveURL(/from=/)
     await expect(page.getByTestId('scrub-active')).toBeHidden()
@@ -112,6 +114,7 @@ test.describe('date scrubber', () => {
   test('pointer: drag a handle, then tap the track to move the nearest one', async ({ page }) => {
     const t = trackErrors(page)
     await page.goto('/?period=all')
+    await openFilters(page)
     await expect(page.getByTestId('scrub-bar')).toHaveCount(30)
     const track = page.getByTestId('scrub-track')
     await track.scrollIntoViewIfNeeded()
@@ -156,6 +159,7 @@ test.describe('date scrubber', () => {
     const t = trackErrors(page)
     const from = new Date(Date.now() - 60 * 24 * 3600 * 1000)
     await page.goto(`/?from=${encodeURIComponent(from.toISOString())}`)
+    await openFilters(page)
     await expect(page.getByTestId('scrub-bar')).toHaveCount(30)
     const tz = (await (await page.request.get('/api/feed/timeline')).json()).timezone as string
     const [, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(from).split('-')
@@ -170,6 +174,7 @@ test.describe('date scrubber', () => {
     const t = trackErrors(page)
     await page.goto('/?period=all&page=2')
     await expect(page.getByTestId('feed-card').first()).toBeVisible()
+    await openFilters(page)
     // Instant scroll to the filters (wheel scrolling is smooth on mobile and
     // would still be moving when the position is read).
     await page.evaluate(() => {
@@ -187,9 +192,9 @@ test.describe('date scrubber', () => {
     const onScreen = () => page.getByTestId('filters-toggle').evaluate((el) => el.getBoundingClientRect().top)
     const y0 = await onScreen()
     // Keyboard activation, so the test runner does not scroll to the button itself.
-    await page.getByTestId('filter-sort-recent').evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }))
+    await page.getByTestId('filter-sort-score').evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }))
     await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(/sort=recent/)
+    await expect(page).toHaveURL(/sort=score/)
     await expect(page).not.toHaveURL(/page=2/)
     await page.waitForTimeout(500)
     expect(Math.abs((await onScreen()) - y0)).toBeLessThan(2)
@@ -216,7 +221,7 @@ test.describe('disclosure', () => {
     await expect(tag).toBeVisible()
     // Children fade in and rise from 10px, later ones with a longer delay.
     const delays = await body.locator('.dz-group > *').evaluateAll((els) => els.map((el) => parseFloat(getComputedStyle(el).transitionDelay)))
-    expect(delays.length).toBe(3)
+    expect(delays.length).toBeGreaterThanOrEqual(3)
     expect(delays[0]!).toBeLessThan(delays[1]!)
     expect(delays[1]!).toBeLessThan(delays[2]!)
     await expect.poll(() => tag.evaluate((el) => getComputedStyle(el.parentElement!).opacity)).toBe('1')
@@ -233,7 +238,7 @@ test.describe('disclosure', () => {
     await expect(card).toBeVisible()
     const kind = await card.getAttribute('data-kind')
     expect(await card.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('linear-gradient')
-    expect(await card.evaluate((el) => getComputedStyle(el).borderTopLeftRadius)).toBe('16px')
+    expect(await card.evaluate((el) => getComputedStyle(el).borderTopLeftRadius)).toBe('28px')
     expect(['hackernews', 'reddit', 'rss']).toContain(kind)
     const det = card.getByTestId('source-details-toggle')
     await det.click()

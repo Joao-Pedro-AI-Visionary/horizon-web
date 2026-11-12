@@ -23,14 +23,14 @@ const toasts = useToasts()
       <div
         v-for="t in toasts.items"
         :key="t.id"
-        class="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-md border border-l-4 bg-surface px-4 py-3 text-sm shadow-2xl shadow-black/60"
-        :class="t.kind === 'error' ? 'border-line border-l-danger' : t.kind === 'success' ? 'border-line border-l-primary' : 'border-line border-l-white/40'"
+        class="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-md border border-l-4 bg-surface px-4 py-3 text-sm shadow-[var(--shadow-lift)] rounded-2xl"
+        :class="t.kind === 'error' ? 'border-line border-l-danger' : t.kind === 'success' ? 'border-line border-l-accent' : 'border-line border-l-fg/40'"
         :role="t.kind === 'error' ? 'alert' : 'status'"
         data-testid="toast"
       >
-        <AppIcon :name="t.kind === 'error' ? 'alert' : 'check'" :size="18" :class="t.kind === 'error' ? 'text-danger' : 'text-primary'" />
+        <AppIcon :name="t.kind === 'error' ? 'alert' : 'check'" :size="18" :class="t.kind === 'error' ? 'text-danger' : 'text-accent'" />
         <p class="flex-1 break-words">{{ t.text }}</p>
-        <button type="button" class="-m-2 inline-flex size-11 cursor-pointer items-center justify-center rounded-md text-muted hover:text-white" aria-label="Fechar aviso" data-testid="toast-close" @click="toasts.dismiss(t.id)">
+        <button type="button" class="-m-2 inline-flex size-11 cursor-pointer items-center justify-center rounded-md text-muted hover:text-fg" aria-label="Fechar aviso" data-testid="toast-close" @click="toasts.dismiss(t.id)">
           <AppIcon name="close" :size="16" />
         </button>
       </div>

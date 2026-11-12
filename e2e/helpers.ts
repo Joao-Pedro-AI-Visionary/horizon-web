@@ -58,6 +58,19 @@ export async function revealAll(page: Page) {
   await page.waitForTimeout(900) // let the last reveal/count-up finish
 }
 
+/** openFilters opens the feed's "Mais filtros" disclosure (period, sort,
+ * source, tag, min score and the date scrubber live there). */
+export async function openFilters(page: Page) {
+  const toggle = page.getByTestId('filters-toggle')
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  // Let the height/fade transitions finish, so positions read afterwards are final.
+  await page.getByTestId('filters').evaluate(async (el) => {
+    await new Promise((r) => requestAnimationFrame(() => r(null)))
+    await Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => null)))
+  })
+}
+
 /** feedTotal reads the real total of the feed (not the animated digits). */
 export async function feedTotal(page: Page): Promise<number> {
   return Number(await page.getByTestId('feed-total').locator('[data-value]').getAttribute('data-value'))
