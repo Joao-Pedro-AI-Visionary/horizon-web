@@ -29,12 +29,12 @@ export class ApiError extends Error {
 // (HORIZON_API_URL in vite.config.ts). See .env.example.
 const BASE = String(import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
 
-// Admin token for write calls. It is typed by the admin on the Sources page
-// and kept in localStorage by the admin store; it is never part of the build.
+// Session token of the logged-in admin (POST /api/auth/login), sent with
+// every write call. It comes from the login form, never from the build.
 let adminToken = ''
 let onUnauthorized: (() => void) | null = null
 
-/** setAdminToken sets the bearer token sent with every write call. */
+/** setAdminToken sets the bearer session token sent with every write call. */
 export function setAdminToken(token: string) {
   adminToken = token.trim()
 }
@@ -46,11 +46,12 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
 
 const isWrite = (method: string) => method !== 'GET' && method !== 'HEAD'
 
-async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal, token = adminToken): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal, withAuth = false): Promise<T> {
   let res: Response
+  const token = adminToken
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
-  if (isWrite(method) && token) headers.Authorization = `Bearer ${token}`
+  if ((isWrite(method) || withAuth) && token) headers.Authorization = `Bearer ${token}`
   try {
     res = await fetch(BASE + path, {
       method,
@@ -73,7 +74,7 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
     }
   }
   if (!res.ok) {
-    if (res.status === 401 && isWrite(method) && token === adminToken) onUnauthorized?.()
+    if (res.status === 401 && token && token === adminToken && (isWrite(method) || withAuth)) onUnauthorized?.()
     const apiMsg = data && typeof data === 'object' && 'error' in data ? String((data as { error: unknown }).error) : ''
     throw new ApiError(res.status, apiMsg || `HTTP ${res.status}`, data)
   }
@@ -111,17 +112,19 @@ export const api = {
   metrics: (days: number) => request<Metrics>('GET', `/api/metrics${query({ days })}`),
   health: () => request<Record<string, string>>('GET', '/healthz'),
   /** authStatus (public): how writes work on this API. */
-  authStatus: () => request<{ mode: 'open' | 'token' | 'disabled' }>('GET', '/api/auth'),
-  /** authCheck answers (204) only for a valid admin token, or with writes open (local dev). */
-  authCheck: (token: string) => request<void>('POST', '/api/auth/check', undefined, undefined, token),
+  authStatus: () => request<{ mode: 'open' | 'login' | 'token' | 'disabled' }>('GET', '/api/auth'),
+  login: (username: string, password: string) =>
+    request<{ token: string; username: string; expires_at: string }>('POST', '/api/auth/login', { username, password }),
+  me: () => request<{ username: string; expires_at?: string }>('GET', '/api/auth/me', undefined, undefined, true),
+  logout: () => request<void>('POST', '/api/auth/logout'),
 }
 
 /** errorMessage turns any thrown value into a user-facing message. */
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 409) return 'Já existe uma coleta em andamento. Aguarde terminar.'
-    if (err.status === 401) return 'Edição bloqueada: desbloqueie com o token de admin em Fontes & Config.'
-    if (err.status === 503 && /HORIZON_ADMIN_TOKEN/.test(err.message)) return 'Edição desligada no servidor: o token de admin não está configurado.'
+    if (err.status === 401) return 'Sua sessão expirou. Entre de novo para editar.'
+    if (err.status === 503 && /writes disabled/.test(err.message)) return 'Edição indisponível no momento.'
     if (err.status === 429) return 'Uma coleta acabou de rodar. Tente de novo em alguns minutos.'
     if (err.status === 404) return 'Não encontrado.'
     return err.message

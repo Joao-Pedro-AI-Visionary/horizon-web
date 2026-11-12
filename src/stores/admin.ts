@@ -2,96 +2,109 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { ApiError, api, setAdminToken, setUnauthorizedHandler } from '../api/client'
 
-const STORAGE_KEY = 'horizon.adminToken'
+const STORAGE_KEY = 'horizon.session'
 
-function readStored(): string {
+interface Stored {
+  token: string
+  username: string
+  expiresAt: string
+}
+
+function readStored(): Stored | null {
   try {
-    return localStorage.getItem(STORAGE_KEY) ?? ''
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const s = JSON.parse(raw) as Stored
+    return s.token && Date.parse(s.expiresAt) > Date.now() ? s : null
   } catch {
-    return ''
+    return null
   }
 }
 
-function writeStored(token: string) {
+function writeStored(s: Stored | null) {
   try {
-    if (token) localStorage.setItem(STORAGE_KEY, token)
-    else localStorage.removeItem(STORAGE_KEY)
+    if (s) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+    else sessionStorage.removeItem(STORAGE_KEY)
   } catch {
-    /* private mode: the token lives for this tab only */
+    /* storage blocked: the session lives in memory for this tab */
   }
 }
 
 /**
- * Admin unlock for write calls. Reads are public; every write needs the
- * HORIZON_ADMIN_TOKEN, which the admin types once and the browser keeps in
- * localStorage. Nothing about it is baked into the bundle.
+ * Admin session. Reads are public; writes need a session from
+ * POST /api/auth/login (username + password), sent as a Bearer token and kept
+ * in sessionStorage until it expires (12 h) or a write answers 401.
  *
- * status: "checking" on start, "open" when the API accepts writes without a
- * token (local dev), "unlocked" with a token, "locked" otherwise.
+ * status: "checking" on start, "open" when the API accepts writes without
+ * credentials (local dev), "in" with a valid session, "out" otherwise.
  */
 export const useAdmin = defineStore('admin', () => {
-  const token = ref(readStored())
-  const status = ref<'checking' | 'open' | 'unlocked' | 'locked'>('checking')
+  const session = ref<Stored | null>(readStored())
+  const status = ref<'checking' | 'open' | 'in' | 'out'>('checking')
   const expired = ref(false)
-  // The API has no admin token configured: writes are refused for everyone.
-  const disabled = ref(false)
-  setAdminToken(token.value)
+  const username = computed(() => session.value?.username ?? '')
+  const canEdit = computed(() => status.value === 'open' || status.value === 'in')
+  let expiryTimer: ReturnType<typeof setTimeout> | undefined
 
-  const canEdit = computed(() => status.value === 'open' || status.value === 'unlocked')
+  function apply(s: Stored | null) {
+    session.value = s
+    writeStored(s)
+    setAdminToken(s?.token ?? '')
+    clearTimeout(expiryTimer)
+    if (s) {
+      const ms = Date.parse(s.expiresAt) - Date.now()
+      expiryTimer = setTimeout(() => logout('expired'), Math.max(0, Math.min(ms, 2 ** 31 - 1)))
+    }
+  }
+  apply(session.value)
 
-  function lock(reason: 'manual' | 'expired' = 'manual') {
-    token.value = ''
-    writeStored('')
-    setAdminToken('')
-    expired.value = reason === 'expired'
-    status.value = 'locked'
+  function logout(reason: 'manual' | 'expired' = 'manual') {
+    const had = session.value
+    apply(null)
+    expired.value = reason === 'expired' && !!had
+    if (status.value !== 'open') status.value = 'out'
+    if (had && reason === 'manual') api.logout().catch(() => {})
   }
 
   setUnauthorizedHandler(() => {
-    if (status.value === 'unlocked') lock('expired')
+    if (status.value === 'in') logout('expired')
   })
 
-  /** unlock validates the token against the API before keeping it. */
-  async function unlock(candidate: string): Promise<void> {
-    const t = candidate.trim()
-    if (!t) throw new Error('Cole o token de admin.')
+  /** login exchanges username + password for a session. */
+  async function login(user: string, password: string): Promise<void> {
     try {
-      await api.authCheck(t)
+      const r = await api.login(user.trim(), password)
+      apply({ token: r.token, username: r.username, expiresAt: r.expires_at })
+      expired.value = false
+      status.value = 'in'
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) throw new Error('Token inválido. Confira e tente de novo.')
+      if (err instanceof ApiError && err.status === 401) throw new Error('Usuário ou senha inválidos.')
+      if (err instanceof ApiError && err.status === 429) {
+        throw new Error('Muitas tentativas. Espere um pouco e tente de novo.')
+      }
       throw err
     }
-    token.value = t
-    writeStored(t)
-    setAdminToken(t)
-    expired.value = false
-    status.value = 'unlocked'
   }
 
   let started: Promise<void> | null = null
-  /**
-   * init runs once: a stored token is checked with POST /api/auth/check;
-   * without one, the public GET /api/auth says whether writes are open
-   * (local dev), so anonymous visitors never trigger a failed request.
-   */
+  /** init runs once: validates a stored session, or learns the write mode. */
   function init(): Promise<void> {
     started ??= (async () => {
       try {
-        if (token.value) {
-          await api.authCheck(token.value)
-          status.value = 'unlocked'
+        if (session.value) {
+          await api.me()
+          status.value = 'in'
           return
         }
         const { mode } = await api.authStatus()
-        disabled.value = mode === 'disabled'
-        status.value = mode === 'open' ? 'open' : 'locked'
+        status.value = mode === 'open' ? 'open' : 'out'
       } catch (err) {
-        if (err instanceof ApiError && err.status === 401 && token.value) lock('expired')
-        else status.value = 'locked'
+        if (err instanceof ApiError && err.status === 401 && session.value) logout('expired')
+        else status.value = 'out'
       }
     })()
     return started
   }
 
-  return { status, canEdit, expired, disabled, init, unlock, lock }
+  return { status, canEdit, expired, username, init, login, logout }
 })

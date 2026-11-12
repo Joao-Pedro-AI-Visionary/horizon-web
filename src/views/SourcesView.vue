@@ -2,7 +2,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ApiError, api, errorMessage } from '../api/client'
 import type { CollectReport, Settings, Source } from '../api/types'
-import AdminUnlock from '../components/AdminUnlock.vue'
 import AppIcon from '../components/AppIcon.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import SourceForm from '../components/SourceForm.vue'
@@ -16,12 +15,6 @@ import { useToasts } from '../stores/toast'
 const toasts = useToasts()
 const admin = useAdmin()
 
-// Read-only visitors: point them at the unlock card instead of a dead button.
-function focusUnlock() {
-  const el = document.getElementById('admin-token')
-  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  el?.focus({ preventScroll: true })
-}
 
 // --- Sources ---
 const sources = ref<Source[]>([])
@@ -183,12 +176,11 @@ onMounted(() => {
     <PageHeader index="03" section="Fontes & Config" title="Fontes e configuração" :muted="2" lead="Onde o radar escuta e como ele decide o que entra no digest.">
       <template #meta><span class="num">{{ sources.length }}</span> fontes · <span class="num">{{ enabledCount }}</span> ativas</template>
       <template #actions>
+        <button v-if="admin.status === 'in'" type="button" class="btn-ghost" data-testid="sources-logout" @click="admin.logout()">Sair</button>
         <button v-if="admin.canEdit" type="button" class="btn-primary" data-testid="source-new" @click="openCreate">
           <AppIcon name="plus" :size="16" /> Nova fonte
         </button>
-        <button v-else-if="admin.status === 'locked'" type="button" class="btn-ghost" data-testid="source-unlock-cta" @click="focusUnlock">
-          <AppIcon name="lock" :size="16" /> Desbloquear edição
-        </button>
+
       </template>
     </PageHeader>
 
@@ -215,14 +207,14 @@ onMounted(() => {
                 </div>
                 <p class="mt-1 font-mono text-xs break-all text-muted">{{ configSummary(s) }}</p>
               </div>
-              <label class="flex min-h-11 shrink-0 items-center gap-2 text-sm" :class="admin.canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'" :title="!admin.canEdit ? 'Somente leitura' : s.enabled ? 'Desativar' : 'Ativar'">
+              <label v-if="admin.canEdit" class="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-sm" :title="s.enabled ? 'Desativar' : 'Ativar'">
                 <span class="sr-only">{{ s.enabled ? 'Desativar' : 'Ativar' }} {{ s.name }}</span>
                 <input
                   type="checkbox"
                   role="switch"
                   class="peer sr-only"
                   :checked="s.enabled"
-                  :disabled="!!busy[s.id] || !admin.canEdit"
+                  :disabled="!!busy[s.id]"
                   :aria-checked="s.enabled"
                   data-testid="source-toggle"
                   @change="toggle(s)"
@@ -251,11 +243,12 @@ onMounted(() => {
                 <dd class="mt-1.5 flex items-center gap-1.5 text-sm" :class="s.last_fetch?.status === 'error' ? 'text-danger' : s.last_fetch?.status === 'skipped' ? 'text-muted' : ''" :data-status="s.last_fetch?.status" data-testid="source-status">
                   <AppIcon v-if="s.last_fetch" :name="s.last_fetch.status === 'ok' ? 'check' : s.last_fetch.status === 'skipped' ? 'clock' : 'alert'" :size="14" :class="s.last_fetch.status === 'ok' ? 'text-ok' : ''" />
                   {{ !s.last_fetch ? '—' : s.last_fetch.status === 'ok' ? `ok · ${s.last_fetch.item_count}` : s.last_fetch.status === 'skipped' ? 'pulada' : 'erro' }}
+
                 </dd>
               </div>
             </dl>
             <p
-              v-if="s.last_fetch?.error"
+              v-if="s.last_fetch?.error && admin.canEdit"
               class="mt-3 rounded-2xl p-3 text-xs break-words sm:ml-10"
               :class="s.last_fetch.status === 'skipped' ? 'bg-ink text-muted' : 'bg-danger/10 text-danger'"
               data-testid="source-fetch-note"
@@ -293,7 +286,7 @@ onMounted(() => {
                   <dt class="label mb-0.5">Última coleta</dt>
                   <dd class="num text-xs" data-testid="source-details-run">{{ s.last_fetch ? `${fmtDateTime(s.last_fetch.started_at)} · ${runDuration(s)}` : 'nunca coletada' }}</dd>
                 </div>
-                <div v-if="s.last_fetch" class="min-w-0">
+                <div v-if="s.last_fetch && admin.canEdit" class="min-w-0">
                   <dt class="label mb-0.5">Run ID</dt>
                   <dd class="font-mono text-xs break-all">{{ s.last_fetch.run_id }}</dd>
                 </div>
@@ -303,9 +296,8 @@ onMounted(() => {
         </ul>
       </section>
 
-      <!-- Access + settings -->
+      <!-- Settings -->
       <div class="grid h-fit gap-6 xl:sticky xl:top-24 xl:col-span-4">
-      <AdminUnlock />
       <section class="card-float h-fit p-5 md:p-6" aria-labelledby="settings-h" data-testid="settings">
         <p class="eyebrow text-accent">Configuração</p>
         <h2 id="settings-h" class="mt-1 font-display text-2xl font-bold tracking-tight">Digest e nota de corte</h2>
@@ -313,9 +305,9 @@ onMounted(() => {
           <div v-for="i in 4" :key="i" class="skeleton h-11" />
         </div>
         <StatePanel v-else-if="settingsError" class="mt-4" kind="error" title="Configurações indisponíveis" :detail="settingsError" @retry="loadSettings" />
-        <form v-else class="mt-5" novalidate @submit.prevent="saveSettings">
-          <fieldset class="grid gap-5" :disabled="!admin.canEdit" data-testid="settings-fieldset">
-          <legend class="sr-only">Digest e nota de corte{{ admin.canEdit ? '' : ' (somente leitura)' }}</legend>
+        <form v-else class="mt-5" novalidate data-testid="settings-form" @submit.prevent="saveSettings">
+          <fieldset class="grid gap-5">
+          <legend class="sr-only">Digest e nota de corte</legend>
           <div>
             <div class="flex items-end justify-between">
               <label for="st-th" class="label">Nota de corte</label>
@@ -345,8 +337,7 @@ onMounted(() => {
             <input id="st-tz" v-model="draft.timezone" class="field" placeholder="America/Sao_Paulo" data-testid="settings-timezone" />
           </div>
           <p v-if="saveError" class="rounded-md bg-danger/10 p-3 text-sm break-words text-danger" role="alert" data-testid="settings-error">{{ saveError }}</p>
-          <button v-if="admin.canEdit" type="submit" class="btn-primary w-full" :disabled="saving" data-testid="settings-save">{{ saving ? 'Salvando…' : 'Salvar configurações' }}</button>
-          <p v-else class="flex items-center justify-center gap-1.5 text-center text-xs text-muted" data-testid="settings-readonly"><AppIcon name="lock" :size="14" /> Somente leitura</p>
+          <button type="submit" class="btn-primary w-full" :disabled="saving" data-testid="settings-save">{{ saving ? 'Salvando…' : 'Salvar configurações' }}</button>
           <p v-if="settings?.updated_at" class="num text-center text-xs text-muted">atualizado {{ fmtDateTime(settings.updated_at) }}</p>
           </fieldset>
         </form>
