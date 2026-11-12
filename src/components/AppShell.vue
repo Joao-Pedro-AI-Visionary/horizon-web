@@ -4,6 +4,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { useAdmin } from '../stores/admin'
 import { useToasts } from '../stores/toast'
+import AdminAlerts from './AdminAlerts.vue'
 import AppIcon from './AppIcon.vue'
 
 const admin = useAdmin()
@@ -97,6 +98,7 @@ function isActive(name: string, routeName: unknown) {
           </RouterLink>
         </nav>
 
+        <AdminAlerts v-if="admin.status === 'in'" class="ml-auto md:ml-0" />
         <div class="ml-auto flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted md:ml-0" role="status" data-testid="api-health">
           <span class="relative flex size-2.5">
             <span v-if="health === 'ok'" class="absolute inset-0 animate-ping rounded-full bg-ok/50 motion-reduce:hidden" aria-hidden="true" />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ApiError, api, errorMessage } from '../api/client'
 import type { CollectReport, Settings, Source } from '../api/types'
 import AppIcon from '../components/AppIcon.vue'
@@ -165,9 +166,21 @@ async function saveSettings() {
   }
 }
 
-onMounted(() => {
-  load()
+// /sources#source-<id> (from the alerts badge) scrolls to that source.
+const route = useRoute()
+async function scrollToHash() {
+  if (!route.hash.startsWith('#source-') || sources.value.length === 0) return
+  await nextTick()
+  const el = document.getElementById(route.hash.slice(1))
+  el?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  el?.focus({ preventScroll: true })
+}
+watch(() => route.hash, scrollToHash)
+
+onMounted(async () => {
   loadSettings()
+  await load()
+  scrollToHash()
 })
 </script>
 
@@ -196,7 +209,7 @@ onMounted(() => {
           <button v-if="admin.canEdit" type="button" class="btn-primary" data-testid="empty-source-new" @click="openCreate"><AppIcon name="plus" :size="16" /> Nova fonte</button>
         </StatePanel>
         <ul v-else class="grid gap-4" data-testid="source-list">
-          <li v-for="(s, i) in sources" :key="s.id" v-reveal="i" class="card-float p-5 md:p-6" :class="s.enabled ? '' : 'opacity-70'" :style="{ backgroundImage: `var(--grad-${s.kind})` }" :data-kind="s.kind" data-testid="source-card">
+          <li v-for="(s, i) in sources" :id="`source-${s.id}`" :key="s.id" v-reveal="i" tabindex="-1" class="card-float scroll-mt-24 p-5 outline-none focus-visible:ring-2 focus-visible:ring-primary md:p-6" :class="s.enabled ? '' : 'opacity-70'" :style="{ backgroundImage: `var(--grad-${s.kind})` }" :data-kind="s.kind" data-testid="source-card">
             <div class="flex items-start gap-4">
               <span class="num hidden pt-1.5 text-sm text-muted sm:block" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
               <div class="min-w-0 flex-1">

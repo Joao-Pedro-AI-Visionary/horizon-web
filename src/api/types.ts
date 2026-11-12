@@ -224,3 +224,19 @@ export interface Metrics {
   }
   generated_at: string
 }
+
+export type AlertKind = 'source' | 'scoring' | 'digest' | 'collection'
+
+export interface AdminAlert {
+  kind: AlertKind
+  source_id?: number
+  name: string
+  message: string
+  at: string
+}
+
+export interface AdminAlerts {
+  count: number
+  since: string
+  alerts: AdminAlert[]
+}

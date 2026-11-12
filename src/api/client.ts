@@ -1,4 +1,5 @@
 import type {
+  AdminAlerts,
   CollectReport,
   Digest,
   FeedPage,
@@ -117,6 +118,8 @@ export const api = {
     request<{ token: string; username: string; expires_at: string }>('POST', '/api/auth/login', { username, password }),
   me: () => request<{ username: string; expires_at?: string }>('GET', '/api/auth/me', undefined, undefined, true),
   logout: () => request<void>('POST', '/api/auth/logout'),
+  /** adminAlerts (admin only): open failures of the last 48 h. */
+  adminAlerts: (signal?: AbortSignal) => request<AdminAlerts>('GET', '/api/admin/alerts', undefined, signal, true),
 }
 
 /** errorMessage turns any thrown value into a user-facing message. */
