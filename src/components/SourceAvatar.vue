@@ -12,6 +12,7 @@ const look = computed(
       hackernews: { text: 'HN', cls: 'bg-[#ffe8d9] text-[#a33a00]' },
       reddit: { text: 'r/', cls: 'bg-[#ffe4dc] text-[#b3261e]' },
       rss: { text: '', cls: 'bg-tint text-accent' },
+      push: { text: 'X', cls: 'bg-[#141414] text-white' },
     })[props.kind as SourceKind] ?? { text: String(props.kind).slice(0, 2).toUpperCase(), cls: 'bg-raised text-fg' },
 )
 </script>

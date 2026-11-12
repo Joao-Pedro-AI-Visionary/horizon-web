@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ApiError, api, errorMessage } from '../api/client'
 import type { CollectReport, Settings, Source } from '../api/types'
 import AppIcon from '../components/AppIcon.vue'
@@ -9,9 +10,12 @@ import DisclosurePanel from '../components/DisclosurePanel.vue'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
 import { fmtDateTime, fmtNumber, fmtRelative, kindLabel } from '../lib/format'
+import { useAdmin } from '../stores/admin'
 import { useToasts } from '../stores/toast'
 
 const toasts = useToasts()
+const admin = useAdmin()
+
 
 // --- Sources ---
 const sources = ref<Source[]>([])
@@ -100,7 +104,8 @@ async function confirmDelete() {
 
 function configSummary(s: Source): string {
   const c = s.config as Record<string, unknown>
-  if (s.kind === 'rss') return String(c.url ?? '')
+  if (s.kind === 'push') return 'recebe itens por push (POST /api/items/ingest)'
+  if (s.kind === 'rss') return [String(c.url ?? ''), c.limit ? `limite ${c.limit}` : ''].filter(Boolean).join(' · ')
   const parts: string[] = []
   if (s.kind === 'reddit') parts.push(`r/${c.subreddit}`, String(c.sort ?? 'hot'))
   if (c.limit) parts.push(`limite ${c.limit}`)
@@ -161,9 +166,21 @@ async function saveSettings() {
   }
 }
 
-onMounted(() => {
-  load()
+// /sources#source-<id> (from the alerts badge) scrolls to that source.
+const route = useRoute()
+async function scrollToHash() {
+  if (!route.hash.startsWith('#source-') || sources.value.length === 0) return
+  await nextTick()
+  const el = document.getElementById(route.hash.slice(1))
+  el?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  el?.focus({ preventScroll: true })
+}
+watch(() => route.hash, scrollToHash)
+
+onMounted(async () => {
   loadSettings()
+  await load()
+  scrollToHash()
 })
 </script>
 
@@ -172,9 +189,11 @@ onMounted(() => {
     <PageHeader index="03" section="Fontes & Config" title="Fontes e configuração" :muted="2" lead="Onde o radar escuta e como ele decide o que entra no digest.">
       <template #meta><span class="num">{{ sources.length }}</span> fontes · <span class="num">{{ enabledCount }}</span> ativas</template>
       <template #actions>
-        <button type="button" class="btn-primary" data-testid="source-new" @click="openCreate">
+        <button v-if="admin.status === 'in'" type="button" class="btn-ghost" data-testid="sources-logout" @click="admin.logout()">Sair</button>
+        <button v-if="admin.canEdit" type="button" class="btn-primary" data-testid="source-new" @click="openCreate">
           <AppIcon name="plus" :size="16" /> Nova fonte
         </button>
+
       </template>
     </PageHeader>
 
@@ -187,10 +206,10 @@ onMounted(() => {
         </div>
         <StatePanel v-else-if="error" kind="error" title="Não foi possível carregar as fontes" :detail="error" @retry="load" />
         <StatePanel v-else-if="sources.length === 0" kind="empty" title="Nenhuma fonte cadastrada" detail="Cadastre um feed RSS, um subreddit ou o Hacker News para começar a coletar." testid="sources-empty">
-          <button type="button" class="btn-primary" data-testid="empty-source-new" @click="openCreate"><AppIcon name="plus" :size="16" /> Nova fonte</button>
+          <button v-if="admin.canEdit" type="button" class="btn-primary" data-testid="empty-source-new" @click="openCreate"><AppIcon name="plus" :size="16" /> Nova fonte</button>
         </StatePanel>
         <ul v-else class="grid gap-4" data-testid="source-list">
-          <li v-for="(s, i) in sources" :key="s.id" v-reveal="i" class="card-float p-5 md:p-6" :class="s.enabled ? '' : 'opacity-70'" :style="{ backgroundImage: `var(--grad-${s.kind})` }" :data-kind="s.kind" data-testid="source-card">
+          <li v-for="(s, i) in sources" :id="`source-${s.id}`" :key="s.id" v-reveal="i" tabindex="-1" class="card-float scroll-mt-24 p-5 outline-none focus-visible:ring-2 focus-visible:ring-primary md:p-6" :class="s.enabled ? '' : 'opacity-70'" :style="{ backgroundImage: `var(--grad-${s.kind})` }" :data-kind="s.kind" data-testid="source-card">
             <div class="flex items-start gap-4">
               <span class="num hidden pt-1.5 text-sm text-muted sm:block" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
               <div class="min-w-0 flex-1">
@@ -201,7 +220,7 @@ onMounted(() => {
                 </div>
                 <p class="mt-1 font-mono text-xs break-all text-muted">{{ configSummary(s) }}</p>
               </div>
-              <label class="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-sm" :title="s.enabled ? 'Desativar' : 'Ativar'">
+              <label v-if="admin.canEdit" class="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-sm" :title="s.enabled ? 'Desativar' : 'Ativar'">
                 <span class="sr-only">{{ s.enabled ? 'Desativar' : 'Ativar' }} {{ s.name }}</span>
                 <input
                   type="checkbox"
@@ -237,11 +256,12 @@ onMounted(() => {
                 <dd class="mt-1.5 flex items-center gap-1.5 text-sm" :class="s.last_fetch?.status === 'error' ? 'text-danger' : s.last_fetch?.status === 'skipped' ? 'text-muted' : ''" :data-status="s.last_fetch?.status" data-testid="source-status">
                   <AppIcon v-if="s.last_fetch" :name="s.last_fetch.status === 'ok' ? 'check' : s.last_fetch.status === 'skipped' ? 'clock' : 'alert'" :size="14" :class="s.last_fetch.status === 'ok' ? 'text-ok' : ''" />
                   {{ !s.last_fetch ? '—' : s.last_fetch.status === 'ok' ? `ok · ${s.last_fetch.item_count}` : s.last_fetch.status === 'skipped' ? 'pulada' : 'erro' }}
+
                 </dd>
               </div>
             </dl>
             <p
-              v-if="s.last_fetch?.error"
+              v-if="s.last_fetch?.error && admin.canEdit"
               class="mt-3 rounded-2xl p-3 text-xs break-words sm:ml-10"
               :class="s.last_fetch.status === 'skipped' ? 'bg-ink text-muted' : 'bg-danger/10 text-danger'"
               data-testid="source-fetch-note"
@@ -249,8 +269,8 @@ onMounted(() => {
               <span v-if="s.last_fetch.status === 'skipped'" class="font-semibold">Coleta pulada: </span>{{ s.last_fetch.error }}
             </p>
 
-            <div class="mt-4 flex flex-wrap gap-2 sm:ml-10">
-              <button type="button" class="btn-primary" :disabled="!!busy[s.id] || !s.enabled" :title="s.enabled ? undefined : 'Ative a fonte para coletar'" data-testid="source-fetch" @click="collect(s)">
+            <div v-if="admin.canEdit" class="mt-4 flex flex-wrap gap-2 sm:ml-10" data-testid="source-actions">
+              <button v-if="s.kind !== 'push'" type="button" class="btn-primary" :disabled="!!busy[s.id] || !s.enabled" :title="s.enabled ? undefined : 'Ative a fonte para coletar'" data-testid="source-fetch" @click="collect(s)">
                 <AppIcon name="refresh" :size="16" :class="busy[s.id] === 'fetch' ? 'animate-spin' : ''" />
                 {{ busy[s.id] === 'fetch' ? 'Coletando…' : 'Coletar agora' }}
               </button>
@@ -279,7 +299,7 @@ onMounted(() => {
                   <dt class="label mb-0.5">Última coleta</dt>
                   <dd class="num text-xs" data-testid="source-details-run">{{ s.last_fetch ? `${fmtDateTime(s.last_fetch.started_at)} · ${runDuration(s)}` : 'nunca coletada' }}</dd>
                 </div>
-                <div v-if="s.last_fetch" class="min-w-0">
+                <div v-if="s.last_fetch && admin.canEdit" class="min-w-0">
                   <dt class="label mb-0.5">Run ID</dt>
                   <dd class="font-mono text-xs break-all">{{ s.last_fetch.run_id }}</dd>
                 </div>
@@ -290,14 +310,17 @@ onMounted(() => {
       </section>
 
       <!-- Settings -->
-      <section class="card-float h-fit p-5 md:p-6 xl:sticky xl:top-24 xl:col-span-4" aria-labelledby="settings-h" data-testid="settings">
+      <div class="grid h-fit gap-6 xl:sticky xl:top-24 xl:col-span-4">
+      <section class="card-float h-fit p-5 md:p-6" aria-labelledby="settings-h" data-testid="settings">
         <p class="eyebrow text-accent">Configuração</p>
         <h2 id="settings-h" class="mt-1 font-display text-2xl font-bold tracking-tight">Digest e nota de corte</h2>
         <div v-if="settingsLoading && !settings" class="mt-5 space-y-3" data-testid="settings-loading" aria-hidden="true">
           <div v-for="i in 4" :key="i" class="skeleton h-11" />
         </div>
         <StatePanel v-else-if="settingsError" class="mt-4" kind="error" title="Configurações indisponíveis" :detail="settingsError" @retry="loadSettings" />
-        <form v-else class="mt-5 grid gap-5" novalidate @submit.prevent="saveSettings">
+        <form v-else class="mt-5" novalidate data-testid="settings-form" @submit.prevent="saveSettings">
+          <fieldset class="grid gap-5">
+          <legend class="sr-only">Digest e nota de corte</legend>
           <div>
             <div class="flex items-end justify-between">
               <label for="st-th" class="label">Nota de corte</label>
@@ -329,8 +352,10 @@ onMounted(() => {
           <p v-if="saveError" class="rounded-md bg-danger/10 p-3 text-sm break-words text-danger" role="alert" data-testid="settings-error">{{ saveError }}</p>
           <button type="submit" class="btn-primary w-full" :disabled="saving" data-testid="settings-save">{{ saving ? 'Salvando…' : 'Salvar configurações' }}</button>
           <p v-if="settings?.updated_at" class="num text-center text-xs text-muted">atualizado {{ fmtDateTime(settings.updated_at) }}</p>
+          </fieldset>
         </form>
       </section>
+      </div>
     </div>
 
     <SourceForm :open="formOpen" :source="editing" @close="formOpen = false" @saved="onSaved" />

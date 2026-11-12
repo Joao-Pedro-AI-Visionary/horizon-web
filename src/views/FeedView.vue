@@ -14,11 +14,13 @@ import TimelineScrubber from '../components/TimelineScrubber.vue'
 import { fmtNumber, fmtScore, fmtToday } from '../lib/format'
 import { reducedMotion } from '../lib/motion'
 import { rankTags } from '../lib/tags'
+import { useAdmin } from '../stores/admin'
 import { useToasts } from '../stores/toast'
 
 const route = useRoute()
 const router = useRouter()
 const toasts = useToasts()
+const admin = useAdmin()
 const PAGE_SIZE = 12
 
 // Filters live in the URL so every view of the feed is a deep link.
@@ -267,6 +269,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
         <button
           type="button"
           class="btn-icon"
+          v-if="admin.canEdit"
           :disabled="running"
           :aria-busy="running"
           :aria-label="running ? 'Coletando fontes…' : 'Rodar pipeline (coletar fontes agora)'"

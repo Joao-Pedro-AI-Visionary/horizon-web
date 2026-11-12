@@ -1,7 +1,7 @@
 // JSON contracts of the Go API (backend/internal/domain and
 // backend/internal/adapters/httpapi). Keep in sync with the json tags there.
 
-export type SourceKind = 'hackernews' | 'reddit' | 'rss'
+export type SourceKind = 'hackernews' | 'reddit' | 'rss' | 'push'
 
 export interface FeedItem {
   item_id: number
@@ -223,4 +223,20 @@ export interface Metrics {
     per_day: TokenDay[] | null
   }
   generated_at: string
+}
+
+export type AlertKind = 'source' | 'scoring' | 'digest' | 'collection'
+
+export interface AdminAlert {
+  kind: AlertKind
+  source_id?: number
+  name: string
+  message: string
+  at: string
+}
+
+export interface AdminAlerts {
+  count: number
+  since: string
+  alerts: AdminAlert[]
 }

@@ -1,18 +1,41 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
+import { useAdmin } from '../stores/admin'
+import { useToasts } from '../stores/toast'
+import AdminAlerts from './AdminAlerts.vue'
 import AppIcon from './AppIcon.vue'
+
+const admin = useAdmin()
+const toasts = useToasts()
+function logout() {
+  admin.logout()
+  toasts.info('Você saiu.')
+}
 
 // md+: a top bar with the brand, a pill nav and the API health.
 // <768px: a slim brand row and a floating pill bottom nav with round items;
 // the active one shows its label and a soft green glow (as in the shot).
-const nav = [
+const allNav = [
   { to: '/', name: 'feed', label: 'Feed', icon: 'feed' },
   { to: '/digests', name: 'digests', label: 'Digests', icon: 'digest' },
   { to: '/sources', name: 'sources', label: 'Fontes & Config', short: 'Fontes', icon: 'sources' },
   { to: '/metrics', name: 'metrics', label: 'Métricas', icon: 'metrics' },
 ] as const
+
+// Fontes & Config is admin-only: visitors see Feed, Digests and Métricas.
+const nav = computed(() => allNav.filter((n) => n.name !== 'sources' || admin.canEdit))
+
+// Signing out on an admin page sends the visitor back to the feed.
+const route = useRoute()
+const router = useRouter()
+watch(
+  () => admin.canEdit,
+  (can) => {
+    if (!can && admin.status !== 'checking' && route.meta.admin) router.replace('/')
+  },
+)
 
 // Real API health (GET /healthz), refreshed every 30s.
 const health = ref<'ok' | 'degraded' | 'down' | 'loading'>('loading')
@@ -75,6 +98,7 @@ function isActive(name: string, routeName: unknown) {
           </RouterLink>
         </nav>
 
+        <AdminAlerts v-if="admin.status === 'in'" class="ml-auto md:ml-0" />
         <div class="ml-auto flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted md:ml-0" role="status" data-testid="api-health">
           <span class="relative flex size-2.5">
             <span v-if="health === 'ok'" class="absolute inset-0 animate-ping rounded-full bg-ok/50 motion-reduce:hidden" aria-hidden="true" />
@@ -85,9 +109,19 @@ function isActive(name: string, routeName: unknown) {
       </div>
     </header>
 
-    <main id="main" tabindex="-1" class="relative z-10 container-ed pb-36 md:pb-16">
+    <main id="main" tabindex="-1" class="relative z-10 container-ed pb-10 md:pb-12">
       <slot />
     </main>
+
+    <!-- Discreet admin access: only "Entrar" (logged out) or "Sair" (logged in). -->
+    <footer class="container-ed flex items-center justify-between gap-4 border-t border-line pt-5 pb-32 text-xs text-muted md:pb-8">
+      <span>Radar by JpDev</span>
+      <span v-if="admin.status === 'in'" class="flex items-center gap-3">
+        <span data-testid="footer-user">{{ admin.username }}</span>
+        <button type="button" class="min-h-11 rounded-full px-2 font-medium text-fg underline-offset-4 hover:underline" data-testid="logout" @click="logout">Sair</button>
+      </span>
+      <RouterLink v-else-if="admin.status === 'out' && $route.name !== 'login'" to="/login" class="inline-flex min-h-11 items-center rounded-full px-2 underline-offset-4 hover:text-fg hover:underline" data-testid="login-link">Entrar</RouterLink>
+    </footer>
 
     <!-- Floating pill bottom nav (mobile) -->
     <nav
