@@ -185,7 +185,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <!-- Admin only: never rendered without a session, even for one frame. -->
+  <div v-if="admin.canEdit">
     <PageHeader index="03" section="Fontes & Config" title="Fontes e configuração" :muted="2" lead="Onde o radar escuta e como ele decide o que entra no digest.">
       <template #meta><span class="num">{{ sources.length }}</span> fontes · <span class="num">{{ enabledCount }}</span> ativas</template>
       <template #actions>
