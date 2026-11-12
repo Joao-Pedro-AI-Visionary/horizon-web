@@ -13,6 +13,7 @@ import StatePanel from '../components/StatePanel.vue'
 import TimelineScrubber from '../components/TimelineScrubber.vue'
 import { fmtNumber, fmtScore, fmtToday } from '../lib/format'
 import { reducedMotion } from '../lib/motion'
+import { rankTags } from '../lib/tags'
 import { useToasts } from '../stores/toast'
 
 const route = useRoute()
@@ -157,10 +158,7 @@ watch(popularKey, loadPopular)
 const topTags = ref<string[]>([])
 async function loadTags() {
   try {
-    const all = (await api.feed({ period: 'all', sort: 'score', page: 1, page_size: 100 })).items ?? []
-    const count = new Map<string, number>()
-    for (const it of all) for (const t of it.tags ?? []) count.set(t, (count.get(t) ?? 0) + 1)
-    topTags.value = [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 6).map(([t]) => t)
+    topTags.value = rankTags((await api.feed({ period: 'all', sort: 'score', page: 1, page_size: 100 })).items ?? [], 6)
   } catch {
     topTags.value = []
   }
