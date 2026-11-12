@@ -60,6 +60,7 @@ export const kindLabel: Record<SourceKind, string> = {
   hackernews: 'Hacker News',
   reddit: 'Reddit',
   rss: 'RSS',
+  push: 'Push',
 }
 
 export function hostOf(url: string): string {

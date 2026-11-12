@@ -7,11 +7,13 @@ import AppIcon from '../components/AppIcon.vue'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
 import { fmtDateTime, fmtDay } from '../lib/format'
+import { useAdmin } from '../stores/admin'
 import { useToasts } from '../stores/toast'
 
 const route = useRoute()
 const router = useRouter()
 const toasts = useToasts()
+const admin = useAdmin()
 
 const digests = ref<Digest[]>([])
 const loading = ref(true)
@@ -63,7 +65,7 @@ async function generate() {
     <PageHeader index="02" section="Digests" title="Digest diário" :muted="1" lead="Os melhores itens de cada dia, acima da nota de corte, em HTML e Markdown.">
       <template #meta><span class="num">{{ digests.length }}</span> {{ digests.length === 1 ? 'edição' : 'edições' }}</template>
       <template #actions>
-        <button type="button" class="btn-primary" :disabled="generating" :aria-busy="generating" data-testid="generate-digest" @click="generate">
+        <button v-if="admin.canEdit" type="button" class="btn-primary" :disabled="generating" :aria-busy="generating" data-testid="generate-digest" @click="generate">
           <AppIcon :name="generating ? 'refresh' : 'plus'" :size="16" :class="generating ? 'animate-spin' : ''" />
           {{ generating ? 'Gerando…' : 'Gerar agora' }}
         </button>

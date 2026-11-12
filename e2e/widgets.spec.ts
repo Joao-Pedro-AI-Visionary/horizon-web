@@ -239,7 +239,7 @@ test.describe('disclosure', () => {
     const kind = await card.getAttribute('data-kind')
     expect(await card.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('linear-gradient')
     expect(await card.evaluate((el) => getComputedStyle(el).borderTopLeftRadius)).toBe('28px')
-    expect(['hackernews', 'reddit', 'rss']).toContain(kind)
+    expect(['hackernews', 'reddit', 'rss', 'push']).toContain(kind)
     const det = card.getByTestId('source-details-toggle')
     await det.click()
     await expect(det).toHaveAttribute('aria-expanded', 'true')

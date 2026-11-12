@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import AppIcon from './components/AppIcon.vue'
 import AppShell from './components/AppShell.vue'
+import { useAdmin } from './stores/admin'
 import { useToasts } from './stores/toast'
 
 const toasts = useToasts()
+const admin = useAdmin()
+// Learn once whether writes are unlocked; a 401 on any write locks again.
+admin.init()
 </script>
 
 <template>

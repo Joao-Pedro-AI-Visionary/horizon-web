@@ -55,6 +55,7 @@
   --grad-hackernews: linear-gradient(135deg, rgb(255 120 40 / 0.08) 0%, transparent 60%);
   --grad-reddit: linear-gradient(135deg, rgb(230 70 40 / 0.07) 0%, transparent 60%);
   --grad-rss: linear-gradient(135deg, rgb(39 107 67 / 0.08) 0%, transparent 60%);
+  --grad-push: linear-gradient(135deg, rgb(20 20 20 / 0.06) 0%, transparent 60%);
   --grad-scrub: linear-gradient(to top, rgb(39 107 67 / 0.95), rgb(39 107 67 / 0.55));
   --page-bg: linear-gradient(180deg, #f4f7f4 0%, #eef2ee 45%, #dfeee0 100%);
 }

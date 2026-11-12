@@ -1,7 +1,7 @@
 // JSON contracts of the Go API (backend/internal/domain and
 // backend/internal/adapters/httpapi). Keep in sync with the json tags there.
 
-export type SourceKind = 'hackernews' | 'reddit' | 'rss'
+export type SourceKind = 'hackernews' | 'reddit' | 'rss' | 'push'
 
 export interface FeedItem {
   item_id: number
