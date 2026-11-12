@@ -11,7 +11,7 @@ export function trackErrors(page: Page, expected: number[] = []) {
     // The test runner injects its own scripts into every frame; the sandboxed
     // digest iframe (no allow-scripts) blocks them. Not an app error: a plain
     // browser session logs nothing there.
-    if (m.text().includes('frame is sandboxed') && m.text().includes('/api/digests/')) return
+    if (m.text().includes('frame is sandboxed') && (m.text().includes('/api/digests/') || m.text().includes('about:srcdoc'))) return
     if (expected.some((s) => m.text().includes(`status of ${s} `))) return
     errors.push(`console: ${m.text()}`)
   })

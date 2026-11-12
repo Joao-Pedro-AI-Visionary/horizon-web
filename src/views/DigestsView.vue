@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, errorMessage } from '../api/client'
 import type { Digest } from '../api/types'
@@ -34,10 +34,65 @@ onMounted(load)
 
 const selectedDate = computed(() => (route.params.date as string) || digests.value[0]?.date || '')
 const selected = computed(() => digests.value.find((d) => d.date === selectedDate.value))
-// Cache-busting key so the iframe reloads after a regeneration.
+// Cache-busting key so the preview reloads after a regeneration.
 const frameKey = ref(0)
 const frameLoading = ref(true)
-watch([selectedDate, frameKey], () => (frameLoading.value = true))
+
+// The digest HTML (rendered by horizon-go) is fetched and shown in a srcdoc
+// iframe sandboxed WITHOUT allow-scripts: nothing in it can run, and
+// allow-same-origin only lets this page read its height. The frame grows
+// to its content, so only the page scrolls.
+const frameHtml = ref('')
+const frameError = ref('')
+const frameHeight = ref(0)
+let frameObserver: ResizeObserver | null = null
+let frameSeq = 0
+
+async function loadFrame() {
+  const date = selectedDate.value
+  const seq = ++frameSeq
+  frameLoading.value = true
+  frameError.value = ''
+  if (!date || !selected.value) return
+  try {
+    const d = await api.digest(date)
+    if (seq !== frameSeq) return
+    frameHtml.value = d.html ?? ''
+  } catch (err) {
+    if (seq !== frameSeq) return
+    frameError.value = errorMessage(err)
+    frameLoading.value = false
+  }
+}
+watch([selectedDate, frameKey, () => selected.value?.id], loadFrame)
+
+function fit(frame: HTMLIFrameElement) {
+  const doc = frame.contentDocument
+  if (!doc) return
+  frameHeight.value = Math.ceil(doc.documentElement.scrollHeight)
+}
+
+function onFrameLoad(e: Event) {
+  const frame = e.target as HTMLIFrameElement
+  const doc = frame.contentDocument
+  frameLoading.value = false
+  if (!doc) return
+  fit(frame)
+  frameObserver?.disconnect()
+  frameObserver = new ResizeObserver(() => fit(frame))
+  frameObserver.observe(doc.documentElement)
+  // In-page links (the table of contents) scroll the page, not the frame.
+  doc.addEventListener('click', (ev) => {
+    const a = (ev.target as Element | null)?.closest?.('a[href^="#"]')
+    if (!a) return
+    const target = doc.getElementById(decodeURIComponent(a.getAttribute('href')!.slice(1)))
+    if (!target) return
+    ev.preventDefault()
+    const top = frame.getBoundingClientRect().top + target.getBoundingClientRect().top + window.scrollY - 96
+    window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  })
+}
+onBeforeUnmount(() => frameObserver?.disconnect())
 
 function open(date: string) {
   router.push({ name: 'digests', params: { date } })
@@ -143,23 +198,28 @@ async function generate() {
               <dd class="num mt-1 text-3xl font-bold">{{ selected.considered }}</dd>
             </div>
           </dl>
-          <div class="relative mt-6 overflow-hidden rounded-[10px] border border-line bg-ink">
+          <StatePanel v-if="frameError" class="mt-6" kind="error" title="Não foi possível abrir o digest" :detail="frameError" @retry="loadFrame" />
+          <div v-else class="relative -mx-4 mt-2 sm:mx-0" :style="{ minHeight: frameLoading ? '24rem' : undefined }">
             <Transition name="drop">
-              <div v-if="frameLoading" class="absolute inset-0 z-10 space-y-3 bg-ink p-6" aria-hidden="true">
+              <div v-if="frameLoading" class="absolute inset-x-0 top-0 z-10 space-y-3 p-4 sm:p-6" aria-hidden="true">
                 <div class="skeleton h-8 w-1/2" />
-                <div class="skeleton h-4 w-full" />
-                <div class="skeleton h-4 w-4/5" />
+                <div class="skeleton h-24 w-full" />
+                <div class="skeleton h-24 w-full" />
               </div>
             </Transition>
-            <!-- Server HTML is rendered sandboxed (no scripts) under the API's CSP. -->
+            <!-- Sandboxed without allow-scripts: the server HTML can't run code. -->
             <iframe
+              v-if="frameHtml"
               :key="`${selected.date}-${frameKey}`"
-              :src="`${api.digestHtmlUrl(selected.date)}&v=${frameKey}`"
+              :srcdoc="frameHtml"
               :title="`Digest ${selected.title}`"
-              sandbox="allow-popups allow-popups-to-escape-sandbox"
-              class="block h-[72dvh] w-full"
+              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+              scrolling="no"
+              class="block w-full overflow-hidden border-0 transition-opacity duration-300"
+              :class="frameLoading ? 'opacity-0' : 'opacity-100'"
+              :style="{ height: frameHeight ? `${frameHeight}px` : '24rem' }"
               data-testid="digest-frame"
-              @load="frameLoading = false"
+              @load="onFrameLoad"
             />
           </div>
         </template>
