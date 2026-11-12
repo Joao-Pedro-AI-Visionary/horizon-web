@@ -3,7 +3,7 @@ import { expectNoHorizontalOverflow, feedTotal, navTo, revealAll, trackErrors } 
 
 // Opens every screen against the real API and saves a full-page screenshot
 // per viewport to docs/screenshots/<screen>-<project>.png.
-const shot = (name: string, project: string) => `../docs/screenshots/${name}-${project}.png`
+const shot = (name: string, project: string) => `docs/screenshots/${name}-${project}.png`
 
 test.describe('screens', () => {
   test('feed', async ({ page }, info) => {

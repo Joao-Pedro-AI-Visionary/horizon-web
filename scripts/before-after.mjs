@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { esc, ffmpeg } from './videos.mjs'
 
-const shots = resolve(import.meta.dirname, '..', '..', 'docs', 'screenshots')
+const shots = resolve(import.meta.dirname, '..', 'docs', 'screenshots')
 const font = process.env.CAPTION_FONT ?? 'C:/Windows/Fonts/arialbd.ttf'
 const screens = [
   ['1-feed', 'FEED'],

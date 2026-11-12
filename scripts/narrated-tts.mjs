@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { duration } from './videos.mjs'
 
-const dir = resolve(import.meta.dirname, '..', '..', 'videos', 'narrated')
+const dir = resolve(import.meta.dirname, '..', 'videos', 'narrated')
 const work = join(dir, 'work')
 const voice = process.env.TTS_VOICE ?? 'pt-BR-AntonioNeural'
 const rate = process.env.TTS_RATE ?? '+8%'

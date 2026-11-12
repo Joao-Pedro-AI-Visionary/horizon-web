@@ -1,10 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// The dashboard needs the real API (cmd/api on :8080, proxied by Vite) and the
-// worker, with Postgres, NATS and Ollama: scripts/e2e.ps1 starts api + worker,
-// runs this suite and stops them by PID. E2E_BASE_URL points at an already
-// running Vite server (e.g. http://localhost:5173); otherwise the build is
-// served by vite preview.
+// The dashboard needs the real horizon-go backend (cmd/api + cmd/worker, with
+// Postgres, NATS and Ollama) already running at HORIZON_API_URL (default
+// http://localhost:8080); e2e/global-setup.ts checks /healthz before the run.
+// E2E_BASE_URL points at an already running Vite server (e.g.
+// http://localhost:5173); otherwise the build is served by vite preview, which
+// proxies /api and /healthz to HORIZON_API_URL.
 //
 // Every test is recorded (video: 'on'); scripts/videos.mjs reads the JSON
 // report and turns the webm files into videos/e2e-<project>.mp4.
@@ -17,6 +18,7 @@ const mobile = { width: 390, height: 844 }
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   workers: 1, // the specs share one real database
   forbidOnly: !!process.env.CI,

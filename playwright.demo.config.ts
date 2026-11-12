@@ -1,12 +1,14 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Narrated tour of the dashboard against the real backend (see demo/tour.spec.ts).
-// Recordings go to ../videos/.raw; scripts/demo-video.mjs builds videos/demo-final.mp4.
+// Narrated tour of the dashboard against the real horizon-go backend, already
+// running at HORIZON_API_URL (see demo/tour.spec.ts). Recordings go to
+// videos/.raw; scripts/demo-video.mjs builds videos/demo-final.mp4.
 const PORT = 4173
 const external = process.env.E2E_BASE_URL
 
 export default defineConfig({
   testDir: './demo',
+  globalSetup: './e2e/global-setup.ts',
   outputDir: './test-results/demo', // keep ./test-results (e2e videos) intact
   workers: 1,
   reporter: 'list',

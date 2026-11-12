@@ -8,7 +8,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { duration, ffmpeg } from './videos.mjs'
 
-const dir = resolve(import.meta.dirname, '..', '..', 'videos', 'narrated')
+const dir = resolve(import.meta.dirname, '..', 'videos', 'narrated')
 const work = join(dir, 'work')
 const logo = resolve(import.meta.dirname, '..', 'public', 'jpdev-logo.png')
 for (const f of ['tour.webm', 'marks.json', 'scenes.json']) {

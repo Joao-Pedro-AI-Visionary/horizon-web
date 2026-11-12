@@ -1,21 +1,55 @@
-# web — Radar by JpDev
+# Horizon Web — Radar by JpDev
 
-Dashboard Vue 3 + Vite + TypeScript + Pinia + Vue Router + Tailwind CSS v4.
-Consome só a API real (`backend/cmd/api`); não há mock nem dado fixo no front.
+Dashboard Vue 3 do **Horizon**, agregador de notícias tech com nota por LLM local, dedup semântico
+e digest diário. Vue 3 + Vite + TypeScript + Pinia + Vue Router + Tailwind CSS v4, com e2e em
+Playwright. Consome só a API real do backend em Go,
+**[horizon-go](https://github.com/Joao-Pedro-AI-Visionary/horizon-go)**; não há mock nem dado fixo no front.
+
+*Vue 3 + TypeScript frontend for Horizon (AI news aggregator). The Go backend lives in
+[horizon-go](https://github.com/Joao-Pedro-AI-Visionary/horizon-go).*
+
+Este repositório era a pasta `web/` do monorepo horizon-go e foi separado com o histórico de
+commits preservado.
+
+| Feed | Detalhe/Cluster | Métricas |
+|---|---|---|
+| ![Feed](docs/screenshots/1-feed-desktop.png) | ![Detalhe](docs/screenshots/2-item-desktop.png) | ![Métricas](docs/screenshots/5-metrics-desktop.png) |
+
+## Como rodar contra o horizon-go
+
+Requisitos: Node 24 e o backend [horizon-go](https://github.com/Joao-Pedro-AI-Visionary/horizon-go)
+rodando (API em `:8080`, worker, Postgres, NATS e Ollama; no Windows, `.\scripts\start-local.ps1`
+no repo do backend).
 
 ```bash
-npm install
-npm run dev        # Vite em :5173; /api e /healthz vão por proxy para :8080 (API_TARGET muda o alvo)
-npm run build      # vue-tsc -b + vite build
-npm run e2e        # Playwright em desktop 1440x900, tablet 834x1112, mobile 390x844
+npm ci
+npm run dev        # Vite em http://localhost:5173; /api e /healthz vão por proxy para HORIZON_API_URL
+npm run build      # vue-tsc -b + vite build (saída em dist/)
+npm run preview    # serve o build em http://localhost:4173, com o mesmo proxy
+```
+
+Configuração (copie `.env.example` para `.env` se precisar mudar algo):
+
+| Variável | Padrão | Para que serve |
+|---|---|---|
+| `HORIZON_API_URL` | `http://localhost:8080` | Alvo do proxy de `/api` e `/healthz` no `vite dev`/`vite preview` e checado pelo Playwright antes de rodar. `API_TARGET` ainda é aceito. |
+| `VITE_API_URL` | vazio | Origem da API chamada direto pelo navegador (entra no build). Vazio mantém URLs relativas `/api` via proxy. Se usar, libere a origem do front em `HORIZON_CORS_ORIGINS` no horizon-go. |
+
+## Testes e vídeos
+
+```bash
+npm run e2e        # Playwright em desktop 1440x900, tablet 834x1112, mobile 390x844 (sobe vite preview em :4173)
 E2E_BASE_URL=http://localhost:5173 npx playwright test   # contra um Vite já rodando
 ```
 
-O e2e exige a API, o worker, o Postgres, o NATS e o Ollama no ar; `..\scripts\e2e.ps1` compila e sobe
-API e worker, roda a suíte, gera `videos/e2e-<project>.mp4` (`scripts/videos.mjs`, FFmpeg) e encerra
-os dois pelo PID. Com `-Demo` também grava o tour `demo/tour.spec.ts` em `videos/demo-final.mp4`. Os testes que alteram dados
-apagam a fonte que criam e restauram as configurações no final. Os screenshots de cada
-tela ficam em `docs/screenshots/<tela>-<viewport>.png`.
+O e2e exige o backend no ar em `HORIZON_API_URL` (o `e2e/global-setup.ts` checa `/healthz` e falha
+com uma mensagem clara se não estiver). No Windows, `.\scripts\e2e.ps1` roda a suíte e gera
+`videos/e2e-<project>.mp4` (`scripts/videos.mjs`, FFmpeg); com `-Demo` também grava o tour
+`demo/tour.spec.ts` em `videos/demo-final.mp4`. `.\scripts\narrated.ps1` gera o vídeo narrado em pt-BR
+(roteiro em `videos/narrated/script.md`). Os testes que alteram dados apagam a fonte que criam e
+restauram as configurações no final. Os screenshots de cada tela ficam em
+`docs/screenshots/<tela>-<viewport>.png`; `node scripts/before-after.mjs` monta o antes/depois.
+Decisões de design e motion em [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## Telas
 
@@ -34,7 +68,7 @@ de 768px. O indicador de saúde vem de `GET /healthz`.
 
 - **Identidade JpDev**: fundo `#0B0B0B`, superfícies `#141414`/`#1C1C1C`, amarelo `#FFD400`
   em CTAs, item ativo da navegação e nota; laranja `#FF7A00` só em badges de duplicado e alertas.
-  A logo `public/jpdev-logo.png` é cópia byte a byte de `assets/jpdev-logo.png` (mesmo SHA-256).
+  A logo `public/jpdev-logo.png` é cópia byte a byte de `assets/jpdev-logo.png` do horizon-go (mesmo SHA-256).
 - **Fontes self-hosted** via `@fontsource-variable` (Space Grotesk, Inter, JetBrains Mono),
   sem chamada ao Google Fonts.
 - **Gráficos em SVG próprio** (`components/BarChart.vue`), sem dependência: barras finas com
@@ -67,3 +101,9 @@ uma a uma, então a coluna da direita registra o padrão que aplicamos inspirado
 | [Bento Grid — Dashboard UI Widgets, Jigar Fotaria](https://dribbble.com/shots/22968599-Bento-Grid-Dashboard-UI-Widgets) | Número grande em fonte mono como herói do tile, com legenda curta abaixo |
 | [AI News Aggregator App, Hasan Mahmud](https://dribbble.com/shots/23806625-AI-News-Aggregator-App) | Card de notícia com metadados (fonte · domínio · tempo) acima do título e tags em chips |
 | [Dark UI — News Feed dashboard, Iza Bulska](https://dribbble.com/shots/2730818-Dark-UI-News-Feed-dashboard) | Feed em grade de duas colunas no desktop com filtros fixos acima |
+
+## Créditos e licença
+
+Parte do Horizon-Go, reescrita em Go + Vue 3 do [Horizon](https://github.com/Thysrael/Horizon)
+© 2026 Thysrael, licença MIT. Licença **MIT**, mantida do upstream: veja [`LICENSE`](LICENSE)
+(copyright Thysrael 2026 + JpDev) e [`NOTICE`](NOTICE).

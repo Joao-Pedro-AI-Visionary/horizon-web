@@ -9,7 +9,7 @@ import type { FeedPage } from '../src/api/types.ts'
 // the clip with at(fraction) and the scene holds until the audio ends.
 // The real start of each scene (relative to the recording) goes to
 // work/marks.json so scripts/narrated-video.mjs can place audio and subtitles.
-const work = resolve(import.meta.dirname, '../../videos/narrated/work')
+const work = resolve(import.meta.dirname, '../videos/narrated/work')
 const GAP = 0.6 // seconds of silence between scenes
 
 type Scene = { id: string; text: string; seconds: number }

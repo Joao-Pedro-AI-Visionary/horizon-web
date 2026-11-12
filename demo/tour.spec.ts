@@ -5,7 +5,7 @@ import type { FeedPage } from '../src/api/types.ts'
 
 // Tour of every screen with on-screen captions, recorded in two contexts:
 // desktop (1440x900) and mobile (390x844). Everything runs against the real API.
-const raw = resolve(import.meta.dirname, '../../videos/.raw')
+const raw = resolve(import.meta.dirname, '../videos/.raw')
 
 /** caption shows a narration bar at the bottom of the page and waits `ms`. */
 async function caption(page: Page, text: string, ms = 2600) {

@@ -24,7 +24,10 @@ export class ApiError extends Error {
   }
 }
 
-const BASE = import.meta.env.VITE_API_BASE ?? ''
+// Origin of the horizon-go API (e.g. https://api.example.com). Empty (default)
+// keeps relative /api and /healthz URLs, served by the Vite dev/preview proxy
+// (HORIZON_API_URL in vite.config.ts). See .env.example.
+const BASE = String(import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
 
 async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   let res: Response
@@ -37,7 +40,7 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
     })
   } catch (err) {
     if ((err as Error).name === 'AbortError') throw err
-    throw new ApiError(0, 'API indisponível — verifique se o cmd/api está rodando.')
+    throw new ApiError(0, 'API indisponível — verifique se o backend (horizon-go, cmd/api) está rodando.')
   }
   if (res.status === 204) return undefined as T
   const text = await res.text()

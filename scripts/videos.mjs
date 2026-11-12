@@ -8,7 +8,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const out = resolve(web, '..', 'videos')
+const out = resolve(web, 'videos')
 const report = resolve(process.argv[2] ?? join(web, 'playwright-report', 'results.json'))
 const font = process.env.CAPTION_FONT ?? 'C:/Windows/Fonts/arialbd.ttf'
 

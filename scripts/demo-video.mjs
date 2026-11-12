@@ -6,7 +6,7 @@ import { existsSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { duration, esc, ffmpeg } from './videos.mjs'
 
-const out = resolve(import.meta.dirname, '..', '..', 'videos')
+const out = resolve(import.meta.dirname, '..', 'videos')
 const raw = join(out, '.raw')
 const logo = resolve(import.meta.dirname, '..', 'public', 'jpdev-logo.png')
 const font = process.env.CAPTION_FONT ?? 'C:/Windows/Fonts/arialbd.ttf'
