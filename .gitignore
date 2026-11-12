@@ -36,3 +36,6 @@ videos/*
 videos/narrated/*
 !videos/narrated/script.md
 .runs/
+
+# Vercel CLI link
+.vercel
