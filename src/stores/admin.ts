@@ -33,6 +33,8 @@ export const useAdmin = defineStore('admin', () => {
   const token = ref(readStored())
   const status = ref<'checking' | 'open' | 'unlocked' | 'locked'>('checking')
   const expired = ref(false)
+  // The API has no admin token configured: writes are refused for everyone.
+  const disabled = ref(false)
   setAdminToken(token.value)
 
   const canEdit = computed(() => status.value === 'open' || status.value === 'unlocked')
@@ -67,12 +69,22 @@ export const useAdmin = defineStore('admin', () => {
   }
 
   let started: Promise<void> | null = null
-  /** init checks the stored token once (or whether writes are open). */
+  /**
+   * init runs once: a stored token is checked with POST /api/auth/check;
+   * without one, the public GET /api/auth says whether writes are open
+   * (local dev), so anonymous visitors never trigger a failed request.
+   */
   function init(): Promise<void> {
     started ??= (async () => {
       try {
-        await api.authCheck(token.value)
-        status.value = token.value ? 'unlocked' : 'open'
+        if (token.value) {
+          await api.authCheck(token.value)
+          status.value = 'unlocked'
+          return
+        }
+        const { mode } = await api.authStatus()
+        disabled.value = mode === 'disabled'
+        status.value = mode === 'open' ? 'open' : 'locked'
       } catch (err) {
         if (err instanceof ApiError && err.status === 401 && token.value) lock('expired')
         else status.value = 'locked'
@@ -81,5 +93,5 @@ export const useAdmin = defineStore('admin', () => {
     return started
   }
 
-  return { status, canEdit, expired, init, unlock, lock }
+  return { status, canEdit, expired, disabled, init, unlock, lock }
 })

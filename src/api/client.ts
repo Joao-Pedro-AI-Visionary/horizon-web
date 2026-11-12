@@ -110,6 +110,8 @@ export const api = {
   saveSettings: (s: Settings) => request<Settings>('PUT', '/api/settings', s),
   metrics: (days: number) => request<Metrics>('GET', `/api/metrics${query({ days })}`),
   health: () => request<Record<string, string>>('GET', '/healthz'),
+  /** authStatus (public): how writes work on this API. */
+  authStatus: () => request<{ mode: 'open' | 'token' | 'disabled' }>('GET', '/api/auth'),
   /** authCheck answers (204) only for a valid admin token, or with writes open (local dev). */
   authCheck: (token: string) => request<void>('POST', '/api/auth/check', undefined, undefined, token),
 }

@@ -59,11 +59,14 @@ function lock() {
       </div>
     </div>
 
+    <p v-if="admin.disabled" class="mt-4 rounded-2xl bg-danger/10 p-3 text-sm text-danger" role="alert" data-testid="admin-disabled">
+      O servidor está sem HORIZON_ADMIN_TOKEN: ninguém consegue editar até ele ser configurado.
+    </p>
     <p v-if="admin.expired && admin.status === 'locked'" class="mt-4 rounded-2xl bg-danger/10 p-3 text-sm text-danger" role="alert" data-testid="admin-expired">
       O token salvo foi recusado pela API. Desbloqueie de novo.
     </p>
 
-    <form v-if="admin.status === 'locked'" class="mt-4 grid gap-2" novalidate data-testid="admin-form" @submit.prevent="submit">
+    <form v-if="admin.status === 'locked' && !admin.disabled" class="mt-4 grid gap-2" novalidate data-testid="admin-form" @submit.prevent="submit">
       <input type="text" name="username" value="horizon-admin" autocomplete="username" class="sr-only" tabindex="-1" aria-hidden="true" readonly />
       <label for="admin-token" class="label">Token de admin</label>
       <div class="relative">

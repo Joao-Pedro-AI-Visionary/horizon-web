@@ -8,6 +8,7 @@ import { trackErrors } from './helpers.ts'
 const TOKEN = 'e2e-admin-token'
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/auth', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"mode":"token"}' }))
   await page.route('**/api/auth/check', (route) => {
     const ok = route.request().headers()['authorization'] === `Bearer ${TOKEN}`
     return route.fulfill(ok ? { status: 204 } : { status: 401, contentType: 'application/json', body: '{"error":"admin token required"}' })
@@ -15,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('read-only visitors see sources and settings but no write controls', async ({ page }) => {
-  const t = trackErrors(page, [401])
+  const t = trackErrors(page)
   await page.goto('/')
   await expect(page.getByTestId('feed-card').first()).toBeVisible()
   await expect(page.getByTestId('run-pipeline')).toHaveCount(0)
