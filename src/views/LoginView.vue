@@ -115,6 +115,7 @@ onMounted(() => userInput.value?.focus())
           </div>
         </div>
         <p id="login-err" class="min-h-5 text-sm text-danger" role="alert" data-testid="login-error">{{ error }}</p>
+        <p class="-mt-2 text-right text-sm"><RouterLink to="/forgot" class="inline-flex min-h-11 items-center text-muted underline-offset-4 hover:text-fg hover:underline" data-testid="forgot-link">Esqueci minha senha</RouterLink></p>
         <button type="submit" class="btn-primary w-full" :disabled="busy" :aria-busy="busy" data-testid="login-submit">
           {{ busy ? 'Entrando…' : 'Entrar' }}
         </button>
