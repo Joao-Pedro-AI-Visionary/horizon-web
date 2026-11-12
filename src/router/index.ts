@@ -29,5 +29,8 @@ router.beforeEach(async (to) => {
 })
 
 router.afterEach((to) => {
+  // A logout while this navigation was still loading its page would land on
+  // an admin page without a session: send it to the feed instead.
+  if (to.meta.admin && !useAdmin().canEdit) router.replace('/')
   document.title = `${String(to.meta.title ?? 'Radar')} · Radar by JpDev`
 })
