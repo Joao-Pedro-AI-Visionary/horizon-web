@@ -42,6 +42,20 @@ export function fmtRelative(iso: string | null | undefined): string {
   return rtf.format(Math.round(diff / 86400), 'day')
 }
 
+const todayFmt = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+/** fmtToday: "quinta-feira, 12 de novembro de 2026" (header date line). */
+export function fmtToday(d = new Date()): string {
+  const s = todayFmt.format(d)
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+const longFmt = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+/** fmtDateLong: "2 de novembro de 2026 às 14:05" (article date). */
+export function fmtDateLong(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  return longFmt.format(new Date(iso))
+}
+
 export const kindLabel: Record<SourceKind, string> = {
   hackernews: 'Hacker News',
   reddit: 'Reddit',

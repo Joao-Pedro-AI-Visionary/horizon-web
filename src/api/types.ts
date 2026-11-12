@@ -121,7 +121,7 @@ export interface FetchRun {
   source_id: number
   source_name: string
   run_id: string
-  status: 'ok' | 'error' | string
+  status: 'ok' | 'error' | 'skipped' | string
   item_count: number
   error: string
   started_at: string

@@ -1,24 +1,30 @@
-@import '@fontsource-variable/space-grotesk';
+@import '@fontsource-variable/plus-jakarta-sans';
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/jetbrains-mono';
 @import 'tailwindcss';
 
-/* JpDev design tokens (see CLAUDE.md and docs/DESIGN.md). */
+/* Design tokens: "Modern News App" palette (Imran Jakir / Kites Design,
+   Dribbble 27246714). Soft sage page, white cards, near-black text and
+   active controls, one green accent. See docs/DESIGN.md. Contrast pairs are
+   AA (checked with the WCAG formula): */
 @theme {
-  --color-ink: #0b0b0b;
-  --color-surface: #141414;
-  --color-raised: #1c1c1c;
-  --color-line: #2a2a2a;
-  --color-rule: #ffffff0f; /* grid hairlines, decorative only */
-  --color-muted: #a3a3a3; /* 7.9:1 on #0b0b0b, 7.3:1 on #141414 */
-  --color-primary: #ffd400;
-  --color-primary-hover: #ffe14d;
-  --color-accent: #ff7a00;
-  --color-danger: #ff6b6b; /* 5.9:1 on #141414 */
-  --color-ok: #4ade80;
-  --color-series-2: #4f8df7; /* second chart series, validated against #141414 */
+  --color-ink: #eef2ee; /* page background (sage off-white) */
+  --color-surface: #ffffff; /* cards */
+  --color-raised: #e4ebe5; /* skeletons, inset tracks */
+  --color-line: #dbe3dc;
+  --color-rule: #0000000a;
+  --color-fg: #121a14; /* text: 15.7:1 on the page */
+  --color-muted: #56635a; /* 5.6:1 on the page, 6.3:1 on white */
+  --color-primary: #121a14; /* active chip, primary button (black in the shot) */
+  --color-primary-hover: #2b352d;
+  --color-accent: #276b43; /* green accent: 6.1:1 on white */
+  --color-glow: #8fdca8; /* decorative glow of the active nav item */
+  --color-tint: #e3f1e6; /* green tint behind accent text */
+  --color-danger: #b42318; /* 6.6:1 on white */
+  --color-ok: #276b43;
+  --color-series-2: #4f7df0;
 
-  --font-display: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 
@@ -28,27 +34,29 @@
 }
 
 :root {
+  color-scheme: light;
   --dur-micro: 150ms;
   --dur-base: 220ms;
   --dur-enter: 420ms;
   --dur-reveal: 640ms;
   --stagger: 55ms;
 
-  /* R2 (MOXEN Encuentro patterns), see docs/DESIGN.md › Referência 2. */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* plain ease-out for widgets */
-  --dur-seg: 180ms; /* segmented pill slide */
-  --dur-disclose: 340ms; /* disclosure height */
-  --dur-disclose-item: 300ms; /* disclosure children fade/rise */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-seg: 180ms;
+  --dur-disclose: 340ms;
+  --dur-disclose-item: 300ms;
   --stagger-disclose: 45ms;
-  --radius-card: 16px; /* floating cards */
-  --radius-control: 6px;
-  --shadow-float: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 18px 40px -18px rgb(0 0 0 / 0.85);
-  --border-float: rgb(255 255 255 / 0.07);
-  /* Soft low-opacity category/source gradients (yellow, orange, neutral). */
-  --grad-hackernews: linear-gradient(135deg, rgb(255 212 0 / 0.11) 0%, rgb(255 212 0 / 0.02) 45%, transparent 75%);
-  --grad-reddit: linear-gradient(135deg, rgb(255 122 0 / 0.11) 0%, rgb(255 122 0 / 0.02) 45%, transparent 75%);
-  --grad-rss: linear-gradient(135deg, rgb(255 255 255 / 0.07) 0%, rgb(255 255 255 / 0.015) 45%, transparent 75%);
-  --grad-scrub: linear-gradient(to top, rgb(255 212 0 / 0.95), rgb(255 212 0 / 0.55));
+  --radius-card: 28px; /* large, soft cards like the shot */
+  --radius-control: 999px;
+  --shadow-float: 0 1px 2px rgb(18 26 20 / 0.04), 0 12px 32px -12px rgb(18 26 20 / 0.14);
+  --shadow-lift: 0 2px 4px rgb(18 26 20 / 0.05), 0 22px 44px -18px rgb(18 26 20 / 0.24);
+  --border-float: rgb(18 26 20 / 0.05);
+  /* Soft source-kind tints for source cards. */
+  --grad-hackernews: linear-gradient(135deg, rgb(255 120 40 / 0.08) 0%, transparent 60%);
+  --grad-reddit: linear-gradient(135deg, rgb(230 70 40 / 0.07) 0%, transparent 60%);
+  --grad-rss: linear-gradient(135deg, rgb(39 107 67 / 0.08) 0%, transparent 60%);
+  --grad-scrub: linear-gradient(to top, rgb(39 107 67 / 0.95), rgb(39 107 67 / 0.55));
+  --page-bg: linear-gradient(180deg, #f4f7f4 0%, #eef2ee 45%, #dfeee0 100%);
 }
 
 html,
@@ -62,21 +70,20 @@ html {
 }
 
 body {
-  @apply bg-ink font-sans text-white antialiased;
+  @apply bg-ink font-sans text-fg antialiased;
   font-size: 16px;
   line-height: 1.5;
 }
 
 ::selection {
-  background: var(--color-primary);
-  color: var(--color-ink);
+  background: var(--color-glow);
+  color: var(--color-fg);
 }
 
 /* Visible focus on every control (keyboard only). */
 :focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: 2px solid var(--color-accent); /* 5.4:1 on the page */
+  outline-offset: 3px;
 }
 
 /* ---------- Layout ---------- */
@@ -84,45 +91,23 @@ body {
   @apply mx-auto w-full max-w-[1360px] px-4 md:px-8;
 }
 
-/* Editorial column rules behind the content (4 / 6 / 12 columns). */
-.grid-rules {
-  @apply pointer-events-none fixed inset-0 z-0;
-}
-.grid-rules > div {
-  @apply container-ed h-full;
-}
-.grid-rules > div > div {
-  height: 100%;
-  border-right: 1px solid var(--color-rule);
-  background-image: linear-gradient(to right, var(--color-rule) 1px, transparent 1px);
-  background-size: calc(100% / 4) 100%;
-}
-@media (min-width: 768px) {
-  .grid-rules > div > div {
-    background-size: calc(100% / 6) 100%;
-  }
-}
-@media (min-width: 1280px) {
-  .grid-rules > div > div {
-    background-size: calc(100% / 12) 100%;
-  }
-}
-
 /* ---------- Type ---------- */
 @utility display-xl {
-  @apply font-display font-bold uppercase;
-  font-size: clamp(2.6rem, 7.2vw, 6.5rem);
-  line-height: 0.9;
-  letter-spacing: -0.035em;
+  @apply font-display font-extrabold;
+  font-size: clamp(2rem, 4.6vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 @utility display-lg {
   @apply font-display font-bold;
-  font-size: clamp(1.9rem, 4.2vw, 3.75rem);
-  line-height: 1.02;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.6rem, 3.2vw, 2.6rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 @utility eyebrow {
-  @apply font-mono text-xs tracking-[0.14em] text-muted uppercase;
+  @apply font-sans text-xs font-semibold tracking-[0.06em] text-muted uppercase;
 }
 @utility num {
   @apply font-mono tabular-nums;
@@ -131,7 +116,7 @@ body {
 
 /* ---------- Surfaces & controls ---------- */
 @utility card {
-  @apply rounded-[10px] border border-line bg-surface;
+  @apply rounded-[20px] border border-line bg-surface;
 }
 /* Floating rounded card on the dark background (R2). */
 @utility card-float {
@@ -147,7 +132,7 @@ body {
   color: var(--color-ink);
 }
 @utility btn {
-  @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md px-4 font-display text-sm font-semibold tracking-tight select-none disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full px-5 font-display text-sm font-semibold tracking-tight select-none disabled:cursor-not-allowed disabled:opacity-50;
   transition:
     background-color var(--dur-micro) ease,
     border-color var(--dur-micro) ease,
@@ -162,27 +147,33 @@ body {
 }
 /* Primary action on a yellow/light surface: solid black. */
 @utility btn-ink {
-  @apply btn bg-ink text-primary hover:bg-black;
+  @apply btn bg-surface text-fg hover:bg-ink;
 }
 @utility btn-ghost {
-  @apply btn border border-line bg-surface text-white hover:border-white/40;
+  @apply btn border border-line bg-surface text-fg shadow-[var(--shadow-float)] hover:border-fg/30;
 }
 @utility btn-danger {
   @apply btn border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20;
 }
+/* Round icon button (search, back, share in the shot). */
 @utility btn-icon {
-  @apply inline-flex size-11 cursor-pointer items-center justify-center rounded-md border border-line bg-surface text-white hover:border-white/40 disabled:cursor-not-allowed disabled:opacity-50;
-  transition: border-color var(--dur-micro) ease;
+  @apply inline-flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full border border-line bg-surface text-fg shadow-[var(--shadow-float)] hover:border-fg/30 disabled:cursor-not-allowed disabled:opacity-50;
+  transition:
+    border-color var(--dur-micro) ease,
+    transform var(--dur-micro) var(--ease-out-expo);
+  &:not(:disabled):active {
+    transform: scale(0.94);
+  }
 }
 @utility field {
-  @apply min-h-11 w-full rounded-md border border-line bg-surface px-3 text-sm text-white placeholder:text-muted focus:border-primary;
+  @apply min-h-11 w-full rounded-2xl border border-line bg-surface px-4 text-sm text-fg placeholder:text-muted focus:border-accent;
   transition: border-color var(--dur-micro) ease;
 }
 @utility label {
-  @apply mb-1.5 block font-mono text-[11px] font-medium tracking-[0.12em] text-muted uppercase;
+  @apply mb-1.5 block font-sans text-xs font-semibold tracking-[0.04em] text-muted uppercase;
 }
 @utility chip {
-  @apply inline-flex min-h-8 items-center gap-1 rounded-full border border-line px-3 text-xs text-white/90;
+  @apply inline-flex min-h-8 items-center gap-1 rounded-full border border-line bg-surface px-3 text-xs font-medium text-fg/90;
   transition:
     border-color var(--dur-micro) ease,
     color var(--dur-micro) ease;
@@ -190,10 +181,10 @@ body {
 /* Segmented control (period / sort / days) with a sliding pill
    (SegmentedControl.vue paints .seg-pill under the pressed button). */
 @utility seg {
-  @apply relative isolate inline-flex rounded-md border border-line bg-surface p-1;
+  @apply relative isolate inline-flex rounded-full border border-line bg-surface p-1;
 }
 @utility seg-btn {
-  @apply relative z-10 min-h-9 min-w-11 flex-auto shrink-0 cursor-pointer rounded px-3 font-mono text-xs whitespace-nowrap text-white/75 hover:text-white aria-pressed:font-semibold aria-pressed:text-ink;
+  @apply relative z-10 min-h-9 min-w-11 flex-auto shrink-0 cursor-pointer rounded-full px-3 text-xs font-semibold whitespace-nowrap text-fg/75 hover:text-fg aria-pressed:text-ink;
   transition: color var(--dur-seg) var(--ease-out);
 }
 .seg-pill {
@@ -202,7 +193,7 @@ body {
   top: 4px;
   bottom: 4px;
   left: 0;
-  border-radius: 4px;
+  border-radius: 999px;
   background: var(--color-primary);
   pointer-events: none;
 }
@@ -291,6 +282,137 @@ body {
   transform: translateX(3px);
 }
 
+/* ---------- News feed (FeedView, NewsCard, PopularDeck, AppShell) ---------- */
+/* Category chip: white pill; the pressed one is solid black (as in the shot). */
+@utility news-chip {
+  @apply inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-5 text-sm font-semibold whitespace-nowrap text-fg/85 shadow-[var(--shadow-float)] select-none hover:border-fg/30 hover:text-fg aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-ink;
+  transition:
+    background-color var(--dur-micro) ease,
+    color var(--dur-micro) ease,
+    border-color var(--dur-micro) ease,
+    transform var(--dur-micro) var(--ease-out-expo);
+  &:active {
+    transform: scale(0.97);
+  }
+}
+/* Horizontal, swipeable chip row that snaps to its chips. */
+.chip-row {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 4px 2px 10px;
+  margin: -4px -2px -10px;
+}
+.chip-row > * {
+  scroll-snap-align: start;
+}
+@utility news-card {
+  @apply relative flex flex-col gap-3 bg-surface p-5 md:p-6;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-float);
+  box-shadow: var(--shadow-float);
+  transition:
+    box-shadow var(--dur-base) ease,
+    transform var(--dur-base) var(--ease-out-expo);
+}
+/* Stretched title link (card guide: one .card-link per card). */
+.news-card a.card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.news-card a.card-link:focus-visible {
+  outline: none;
+}
+.news-card:has(a.card-link:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.news-card :is(a:not(.card-link), button) {
+  position: relative;
+  z-index: 1;
+}
+@media (hover: hover) {
+  .news-card:has(a.card-link:hover) {
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-2px);
+  }
+}
+/* Score pill: green tint when the item reaches the digest threshold. */
+@utility score-pill {
+  @apply inline-flex min-h-8 items-center gap-1 rounded-full border border-line bg-surface px-3 text-xs font-semibold text-fg tabular-nums;
+}
+/* Floating pill bottom nav (mobile) and its round items. */
+.pill-nav {
+  @apply rounded-full border border-fg/5 bg-surface/90 p-1.5 backdrop-blur-md;
+  box-shadow: 0 18px 40px -16px rgb(18 26 20 / 0.35);
+}
+.pill-nav-item {
+  @apply relative inline-flex size-12 items-center justify-center gap-2 rounded-full text-fg/75;
+  transition:
+    background-color var(--dur-base) ease,
+    color var(--dur-base) ease,
+    width var(--dur-base) var(--ease-out);
+}
+.pill-nav-item[aria-current='page'] {
+  @apply w-auto bg-surface px-4 text-fg;
+  box-shadow:
+    0 0 0 1px rgb(39 107 67 / 0.25),
+    0 6px 18px -4px color-mix(in srgb, var(--color-glow) 85%, transparent),
+    inset 0 -10px 18px -10px color-mix(in srgb, var(--color-glow) 90%, transparent);
+}
+/* Popular deck: the cards behind peek above the front one and fade out. */
+.deck {
+  position: relative;
+  padding-top: 5.5rem;
+}
+/* Each card behind shows a 2.75rem band (avatar + source) above the next. */
+.deck-back {
+  position: absolute;
+  top: 0;
+  bottom: 2rem;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 2rem, transparent 5rem);
+  mask-image: linear-gradient(to bottom, #000 0, #000 2rem, transparent 5rem);
+}
+.deck-back.is-1 {
+  inset-inline: 0.875rem;
+  top: 2.75rem;
+  opacity: 0.8;
+}
+.deck-back.is-2 {
+  inset-inline: 1.875rem;
+  opacity: 0.5;
+}
+.deck-swap-enter-active {
+  transition:
+    opacity var(--dur-enter) var(--ease-out-expo),
+    transform var(--dur-enter) var(--ease-out-expo);
+}
+.deck-swap-leave-active {
+  display: none;
+}
+.deck-swap-enter-from {
+  opacity: 0;
+  transform: translateY(-2rem) scale(0.96);
+}
+/* Article panel that rises over the headline block (screen 3 of the shot). */
+.article-hero {
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(143 220 168 / 0.55), transparent 60%),
+    radial-gradient(90% 80% at 100% 100%, rgb(39 107 67 / 0.25), transparent 65%),
+    #dcebdd;
+}
+.article-panel {
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lift);
+}
+
 /* ---------- Motion ---------- */
 @keyframes pulse-soft {
   50% {
@@ -298,7 +420,7 @@ body {
   }
 }
 .skeleton {
-  @apply rounded-md bg-raised;
+  @apply rounded-2xl bg-raised;
   animation: pulse-soft 1.4s ease-in-out infinite;
 }
 

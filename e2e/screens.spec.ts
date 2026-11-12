@@ -9,7 +9,7 @@ test.describe('screens', () => {
   test('feed', async ({ page }, info) => {
     const t = trackErrors(page)
     await page.goto('/?period=all')
-    await expect(page.getByRole('heading', { level: 1, name: 'O que importa hoje' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Central de notícias' })).toBeVisible()
     await expect(page.getByTestId('feed-card').first()).toBeVisible()
     await expect(page.getByTestId('pagination')).toBeVisible()
     expect(await feedTotal(page)).toBeGreaterThan(0)

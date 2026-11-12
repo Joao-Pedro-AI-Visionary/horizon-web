@@ -1,4 +1,4 @@
-# Design — Radar by JpDev (fases R1 e R2)
+# Design — Radar by JpDev (fases R1, R2 e R3)
 
 Redesign editorial do front Vue 3 (``). Referência estudada: Tubik, *The Alabama Solution* — páginas editoriais para a investigação da HBO (Webby 2026). As imagens do case foram baixadas para `.runs/ref/` (fora do git) só para estudo; nada da referência foi copiado: marca, cores, fontes e conteúdo são do Radar/JpDev.
 
@@ -167,3 +167,43 @@ A regra global do R1 (durações a 0,01ms, sem delay) cobre os widgets: a pílul
 - **reduced motion**.
 
 Go: `TestDayStarts` (limites de dia no fuso), `TestTimelineIgnoresTimeFilters` e casos de validação em `TestStatusMapping`, além do bloco de timeline em `TestAPIAgainstPostgresAndNATS`, que roda contra o Postgres real.
+
+# Referência 3: Modern News App (fase R3, feed de notícias)
+
+Referência: [Modern News App UI Design — Clean News Feed & Article Experience](https://dribbble.com/shots/27246714-Modern-News-App-UI-Design-Clean-News-Feed-Article-Experience), de **Imran Jakir / Kites Design** (Dribbble). Decisões do João: paleta fiel ao shot (sálvia e verde claro, não o amarelo/preto JpDev) e **cards só de texto** (a API não tem imagens; nada de imagem falsa).
+
+## 1. Elementos do shot → dados reais
+
+| Elemento do shot | No Radar | Dado / ação real |
+|---|---|---|
+| Linha de data + "News Hub" | Data de hoje (pt-BR) + "Central de notícias" | `Intl.DateTimeFormat` |
+| Botão redondo de busca | Abre a busca do feed | `GET /api/feed?q=` |
+| Sino de notificações | **Removido** (não há notificações no backend); no lugar, botão redondo "Rodar pipeline" | `POST /api/pipeline/run` |
+| Chips de categoria (ativo preto) | "Todas" + as 6 tags mais frequentes | `GET /api/feed?tag=` |
+| "Popular News" + "See All" + pilha de cards | "Em alta": top 5 por nota, com anterior/próximo; "Ver todas" ordena a lista por nota | `GET /api/feed?sort=score&page_size=5` |
+| Logo redondo da fonte | Avatar por tipo de fonte (HN, r/, ícone RSS) | `source_kind` |
+| Nome da fonte + selo verificado | Nome da fonte · domínio (selo removido: não há verificação) | `source_name`, `url` |
+| "2 hours ago" | "há 2 horas" | `published_at` (ou `projected_at`) |
+| Botão kebab / compartilhar | Abrir original (nova aba) | `url` |
+| Likes / comentários / views | Nota do LLM, "+N fontes", tags (filtram ao clicar) | `score`, `duplicate_count`, `tags` |
+| Imagem do card | Sem imagem: hierarquia tipográfica (título forte + resumo) | `title`, `summary` |
+| Artigo: hero + painel branco que sobe | Hero tipográfico com a nota (/10) e o status; painel com fonte, título, data longa, linha de meta (autor, fonte, +N fontes), resumo com palavras iniciais em negrito, "Por que essa nota", tags e "Abrir original" | `GET /api/items/:id` |
+| Barra inferior em pílula com glow verde | Mobile: pílula flutuante com Feed, Digests, Fontes, Métricas; o item ativo mostra o rótulo e o glow. md+: nav em pílula no topo | rotas do app |
+
+## 2. Tokens
+
+Fundo `#eef2ee` com gradiente suave para `#dfeee0`, cards `#ffffff`, texto `#121a14` (15,7:1), muted `#56635a` (5,6:1 no fundo, 6,3:1 no branco), ativo/primário `#121a14`, acento verde `#276b43` (6,1:1 no branco) com tinta `#e3f1e6`, perigo `#b42318`. Raio de card 28px, botões e chips em pílula, sombra suave em duas camadas. Fonte display **Plus Jakarta Sans** (self-host via `@fontsource-variable`), texto em Inter.
+
+## 3. UX e acessibilidade
+
+- Fitts: botões redondos de 48px, itens da barra inferior com 48px, chips com 44px.
+- Hick / revelação progressiva: período, ordem, fonte, tag, nota mínima e linha do tempo ficam em "Mais filtros"; os chips cobrem o caso comum.
+- Jakob: lupa para busca, logo no topo esquerdo, voltar no topo esquerdo do artigo.
+- Von Restorff: só o chip ativo e o botão "Abrir original" são pretos; o verde marca nota acima do corte.
+- Card: `<article>` com o título como único link esticado (`.card-link`); abrir original e tags ficam como controles independentes acima dele.
+- Botões só com ícone têm `aria-label`; chips usam `aria-pressed`; a busca é `role="search"` e fecha com Esc; o deck anuncia "N de M" em `aria-live`; os cards de trás são `inert`.
+- `prefers-reduced-motion`: troca do deck, revelação e transições caem para o estado final.
+
+## 4. Testes
+
+`e2e/news.spec.ts`: chips contra a API, busca, deck (ordem, rotação, "Ver todas"), artigo com campos reais, navegação mobile/desktop, status "pulada" em Fontes e larguras 375/768/1280 sem rolagem horizontal (screenshots `docs/screenshots/news-*.png`).

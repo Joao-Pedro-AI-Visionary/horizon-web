@@ -95,18 +95,18 @@ async function generate() {
             <button
               type="button"
               class="group relative w-full min-w-52 cursor-pointer rounded-md border border-line px-4 py-3 text-left transition-colors duration-200 lg:rounded-none lg:border-0 lg:py-4 lg:pl-5"
-              :class="d.date === selectedDate ? 'bg-surface text-white' : 'text-white/80 hover:bg-white/[0.03] hover:text-white'"
+              :class="d.date === selectedDate ? 'bg-surface text-fg' : 'text-fg/80 hover:bg-fg/[0.03] hover:text-fg'"
               :aria-current="d.date === selectedDate ? 'true' : undefined"
               data-testid="digest-item"
               @click="open(d.date)"
             >
               <span
-                class="absolute top-0 bottom-0 left-0 w-0.5 origin-top bg-primary transition-transform duration-300 max-lg:inset-x-0 max-lg:top-auto max-lg:h-0.5 max-lg:w-auto max-lg:origin-left"
+                class="absolute top-0 bottom-0 left-0 w-0.5 origin-top bg-accent transition-transform duration-300 max-lg:inset-x-0 max-lg:top-auto max-lg:h-0.5 max-lg:w-auto max-lg:origin-left"
                 :class="d.date === selectedDate ? 'scale-100' : 'max-lg:scale-x-0 lg:scale-y-0'"
                 aria-hidden="true"
               />
               <span class="num block text-xs text-muted">Nº {{ String(digests.length - i).padStart(2, '0') }}</span>
-              <span class="mt-0.5 block font-display text-lg font-semibold tracking-tight" :class="d.date === selectedDate ? 'text-primary' : ''">{{ fmtDay(d.date) }}</span>
+              <span class="mt-0.5 block font-display text-lg font-semibold tracking-tight" :class="d.date === selectedDate ? 'text-accent' : ''">{{ fmtDay(d.date) }}</span>
               <span class="num block text-xs text-muted">{{ d.item_count }} itens · {{ d.considered }} considerados</span>
             </button>
           </li>
@@ -134,7 +134,7 @@ async function generate() {
           <dl class="grid grid-cols-2 border-b border-line">
             <div class="py-4 pr-3">
               <dt class="eyebrow">Itens no digest</dt>
-              <dd class="num mt-1 text-3xl font-bold text-primary">{{ selected.item_count }}</dd>
+              <dd class="num mt-1 text-3xl font-bold text-accent">{{ selected.item_count }}</dd>
             </div>
             <div class="border-l border-line py-4 pl-4">
               <dt class="eyebrow">Considerados</dt>

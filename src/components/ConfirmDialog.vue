@@ -19,7 +19,7 @@ watch(
 <template>
   <dialog
     ref="el"
-    class="card m-auto w-[min(92vw,420px)] p-0 text-white backdrop:bg-black/70"
+    class="card m-auto w-[min(92vw,420px)] p-0 text-fg backdrop:bg-black/70"
     aria-labelledby="confirm-title"
     data-testid="confirm-dialog"
     @cancel.prevent="emit('cancel')"

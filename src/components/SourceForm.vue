@@ -87,7 +87,7 @@ async function submit() {
 <template>
   <dialog
     ref="el"
-    class="card m-auto max-h-[90dvh] w-[min(94vw,520px)] overflow-y-auto p-0 text-white backdrop:bg-black/70"
+    class="card m-auto max-h-[90dvh] w-[min(94vw,520px)] overflow-y-auto p-0 text-fg backdrop:bg-black/70"
     aria-labelledby="source-form-title"
     data-testid="source-form"
     @cancel.prevent="emit('close')"
@@ -108,7 +108,7 @@ async function submit() {
               v-for="k in (['hackernews', 'reddit', 'rss'] as const)"
               :key="k"
               class="flex min-h-11 items-center justify-center rounded-md border px-2 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary"
-              :class="[form.kind === k ? 'border-primary bg-primary/10 text-primary' : 'border-line bg-raised', editing ? 'cursor-not-allowed opacity-60' : 'cursor-pointer']"
+              :class="[form.kind === k ? 'border-accent bg-tint text-accent' : 'border-line bg-raised', editing ? 'cursor-not-allowed opacity-60' : 'cursor-pointer']"
             >
               <input v-model="form.kind" type="radio" name="kind" :value="k" class="sr-only" :disabled="editing" :data-testid="`source-kind-${k}`" />
               {{ kindLabel[k] }}
@@ -164,7 +164,7 @@ async function submit() {
         </div>
 
         <label class="flex min-h-11 cursor-pointer items-center gap-3">
-          <input v-model="form.enabled" type="checkbox" class="size-5 accent-primary" data-testid="source-enabled" />
+          <input v-model="form.enabled" type="checkbox" class="size-5 accent-accent" data-testid="source-enabled" />
           <span class="text-sm">Ativa (entra nas coletas)</span>
         </label>
 

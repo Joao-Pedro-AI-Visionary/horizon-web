@@ -241,13 +241,13 @@ const axis = computed(() => {
       <div>
         <h2 id="scrub-h" class="eyebrow">Linha do tempo · {{ tl?.days ?? days ?? 30 }} dias</h2>
         <p class="num mt-1 text-2xl font-bold md:text-3xl" data-testid="scrub-label">
-          <span>{{ short(loDay) }}</span><span class="px-2 text-primary" aria-hidden="true">→</span><span class="sr-only"> até </span><span>{{ short(hiDay) }}</span>
+          <span>{{ short(loDay) }}</span><span class="px-2 text-accent" aria-hidden="true">→</span><span class="sr-only"> até </span><span>{{ short(hiDay) }}</span>
         </p>
       </div>
       <p class="num text-sm text-muted">
         <template v-if="fromOutside">início antes da janela de {{ tl?.days ?? 30 }} dias</template>
         <template v-else>
-          <span class="text-xl font-bold text-white" data-testid="scrub-count">{{ fmtNumber(selCount) }}</span>
+          <span class="text-xl font-bold text-fg" data-testid="scrub-count">{{ fmtNumber(selCount) }}</span>
           {{ selCount === 1 ? 'item' : 'itens' }} nestes dias
         </template>
       </p>
@@ -277,7 +277,7 @@ const axis = computed(() => {
             class="scrub-bar min-h-[2px] flex-1 rounded-t-[2px]"
             :style="{
               height: `${Math.max(3, (b.count / maxCount) * 100)}%`,
-              background: i >= lo && i <= hi ? 'var(--grad-scrub)' : '#3a3a3a',
+              background: i >= lo && i <= hi ? 'var(--grad-scrub)' : '#cdd8cf',
               opacity: b.count === 0 ? 0.5 : 1,
             }"
             data-testid="scrub-bar"
@@ -285,7 +285,7 @@ const axis = computed(() => {
           />
         </div>
         <div
-          class="scrub-band pointer-events-none absolute top-0 bottom-6 rounded-md border-x-2 border-primary bg-primary/[0.06]"
+          class="scrub-band pointer-events-none absolute top-0 bottom-6 rounded-md border-x-2 border-accent bg-accent/[0.08]"
           :style="{ left: `${pct(lo)}%`, right: `${100 - pct(hi + 1)}%` }"
           aria-hidden="true"
         />
@@ -307,7 +307,7 @@ const axis = computed(() => {
           :data-testid="w === 'lo' ? 'scrub-from' : 'scrub-to'"
           @keydown="onKey($event, w)"
         >
-          <span class="mb-[-10px] size-5 rounded-full border-[3px] border-ink bg-primary shadow-[0_0_0_1px_var(--color-primary)] transition-transform duration-150 group-hover:scale-110 group-focus-visible:scale-110" aria-hidden="true" />
+          <span class="mb-[-10px] size-5 rounded-full border-[3px] border-surface bg-accent shadow-[0_0_0_1px_var(--color-accent)] transition-transform duration-150 group-hover:scale-110 group-focus-visible:scale-110" aria-hidden="true" />
         </div>
         <div class="absolute inset-x-0 bottom-0 flex justify-between font-mono text-[11px] text-muted" aria-hidden="true">
           <span v-for="d in axis" :key="d">{{ short(d) }}</span>

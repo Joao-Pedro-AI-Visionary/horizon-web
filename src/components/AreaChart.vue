@@ -70,7 +70,7 @@ const tip = computed(() => (active.value === null ? null : { i: active.value, le
         </defs>
         <g aria-hidden="true">
           <g v-for="t in ticks" :key="t">
-            <line :x1="pad.left" :x2="width - pad.right" :y1="y(t)" :y2="y(t)" stroke="#2a2a2a" :stroke-dasharray="t === 0 ? undefined : '2 4'" />
+            <line :x1="pad.left" :x2="width - pad.right" :y1="y(t)" :y2="y(t)" stroke="#dbe3dc" :stroke-dasharray="t === 0 ? undefined : '2 4'" />
             <text :x="pad.left - 8" :y="y(t) + 4" text-anchor="end" class="fill-muted font-mono text-[10px]">{{ fmt(t) }}</text>
           </g>
           <template v-for="(l, i) in labels" :key="l">
@@ -93,8 +93,8 @@ const tip = computed(() => (active.value === null ? null : { i: active.value, le
             />
           </g>
           <template v-if="active !== null">
-            <line :x1="x(active)" :x2="x(active)" :y1="pad.top" :y2="pad.top + plotH" stroke="#ffffff" stroke-opacity="0.25" />
-            <circle v-for="s in series" :key="s.name" :cx="x(active)" :cy="y(s.values[active] ?? 0)" r="4" :fill="s.color" stroke="#0b0b0b" stroke-width="2" />
+            <line :x1="x(active)" :x2="x(active)" :y1="pad.top" :y2="pad.top + plotH" stroke="#121a14" stroke-opacity="0.25" />
+            <circle v-for="s in series" :key="s.name" :cx="x(active)" :cy="y(s.values[active] ?? 0)" r="4" :fill="s.color" stroke="#ffffff" stroke-width="2" />
           </template>
         </g>
         <rect
@@ -113,15 +113,15 @@ const tip = computed(() => (active.value === null ? null : { i: active.value, le
         />
       </svg>
       <div v-if="tip" class="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-md border border-line bg-ink/95 px-3 py-2 text-xs shadow-xl" :style="{ left: `${tip.left}px` }" role="presentation">
-        <p class="mb-1 font-semibold text-white">{{ tooltipLabels?.[tip.i] ?? labels[tip.i] }}</p>
-        <p v-for="s in series" :key="s.name" class="flex items-center gap-2 whitespace-nowrap text-white/85">
+        <p class="mb-1 font-semibold text-fg">{{ tooltipLabels?.[tip.i] ?? labels[tip.i] }}</p>
+        <p v-for="s in series" :key="s.name" class="flex items-center gap-2 whitespace-nowrap text-fg/85">
           <span class="size-2 rounded-sm" :style="{ background: s.color }" />{{ s.name }}
-          <span class="ml-auto pl-3 font-mono text-white">{{ fmt(s.values[tip.i] ?? 0) }}</span>
+          <span class="ml-auto pl-3 font-mono text-fg">{{ fmt(s.values[tip.i] ?? 0) }}</span>
         </p>
       </div>
     </div>
     <details class="mt-2 text-xs text-muted">
-      <summary class="inline-flex min-h-11 cursor-pointer items-center font-mono tracking-wider uppercase hover:text-white" data-testid="chart-table-toggle">Ver tabela</summary>
+      <summary class="inline-flex min-h-11 cursor-pointer items-center font-mono tracking-wider uppercase hover:text-fg" data-testid="chart-table-toggle">Ver tabela</summary>
       <div class="mt-2 max-h-56 overflow-auto">
         <table class="w-full text-left">
           <thead>
@@ -130,7 +130,7 @@ const tip = computed(() => (active.value === null ? null : { i: active.value, le
               <th v-for="s in series" :key="s.name" scope="col" class="py-1 pr-3 text-right font-medium">{{ s.name }}</th>
             </tr>
           </thead>
-          <tbody class="font-mono text-white/85">
+          <tbody class="font-mono text-fg/85">
             <tr v-for="(l, i) in labels" :key="l" class="border-t border-line">
               <th scope="row" class="py-1 pr-3 font-normal">{{ tooltipLabels?.[i] ?? l }}</th>
               <td v-for="s in series" :key="s.name" class="py-1 pr-3 text-right">{{ fmt(s.values[i] ?? 0) }}</td>
