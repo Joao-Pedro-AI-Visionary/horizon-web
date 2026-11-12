@@ -58,6 +58,13 @@
   --grad-push: linear-gradient(135deg, rgb(20 20 20 / 0.06) 0%, transparent 60%);
   --grad-scrub: linear-gradient(to top, rgb(39 107 67 / 0.95), rgb(39 107 67 / 0.55));
   --page-bg: linear-gradient(180deg, #f4f7f4 0%, #eef2ee 45%, #dfeee0 100%);
+  /* Page gutter; containers never go under the notch (viewport-fit=cover). */
+  --gutter: 1rem;
+}
+@media (min-width: 48rem) {
+  :root {
+    --gutter: 2rem;
+  }
 }
 
 html,
@@ -68,6 +75,9 @@ body,
 
 html {
   scrollbar-color: #3a3a3a transparent;
+  /* iOS landscape must not inflate text. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -89,7 +99,9 @@ body {
 
 /* ---------- Layout ---------- */
 @utility container-ed {
-  @apply mx-auto w-full max-w-[1360px] px-4 md:px-8;
+  @apply mx-auto w-full max-w-[1360px];
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
 }
 
 /* ---------- Type ---------- */
@@ -310,7 +322,8 @@ body {
   scroll-snap-align: start;
 }
 @utility news-card {
-  @apply relative flex flex-col gap-3 bg-surface p-5 md:p-6;
+  /* min-w-0: as a grid item the card must not grow to its nowrap content. */
+  @apply relative flex min-w-0 flex-col gap-3 bg-surface p-5 md:p-6;
   border-radius: var(--radius-card);
   border: 1px solid var(--border-float);
   box-shadow: var(--shadow-float);
@@ -547,6 +560,40 @@ body {
 @keyframes meter-fill {
   from {
     transform: scaleX(0);
+  }
+}
+
+/* ---------- Phones (iOS Safari) ---------- */
+/* Below md, plus large phones in landscape (touch, short viewport), which are
+   wider than md. Tablets and desktop are not matched. */
+@media not all and (min-width: 48rem), (pointer: coarse) and (max-height: 32rem) {
+  /* iOS zooms the page when a focused control has a font-size under 16px. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1rem);
+  }
+  /* 44px touch targets without changing the look: invisible hit areas. */
+  /* Anchor for the ::after below (.seg-btn is already relative). */
+  :is(a, button).score-pill {
+    position: relative;
+  }
+  .seg-btn::after,
+  :is(a, button).score-pill::after {
+    content: '';
+    position: absolute;
+    inset: -6px 0;
+  }
+  /* Room between wrapped chip rows, so their hit areas do not overlap. */
+  .news-card > footer {
+    row-gap: 0.75rem;
+  }
+}
+@media not all and (min-width: 48rem) {
+  /* KPI numbers shrink with the viewport and may break (320px screens). */
+  .kpi-num {
+    font-size: clamp(1.5rem, 0.5rem + 5.5vw, 2.25rem);
+    overflow-wrap: anywhere;
   }
 }
 

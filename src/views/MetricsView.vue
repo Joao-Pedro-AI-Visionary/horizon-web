@@ -95,24 +95,24 @@ const statusLabel: Record<string, string> = { raw: 'aguardando nota', scored: 'c
 
       <!-- KPI strip -->
       <dl class="grid grid-cols-2 border-y border-line lg:grid-cols-4">
-        <div v-reveal="0" class="py-6 pr-4" data-testid="kpi-fetched">
+        <div v-reveal="0" class="min-w-0 py-6 pr-4" data-testid="kpi-fetched">
           <dt class="eyebrow">Coletados</dt>
-          <dd class="mt-2 text-4xl font-bold text-accent md:text-6xl"><CountUp :value="totals.fetched" :format="fmtNumber" /></dd>
+          <dd class="kpi-num mt-2 text-4xl font-bold text-accent md:text-6xl"><CountUp :value="totals.fetched" :format="fmtNumber" /></dd>
           <dd class="mt-1 text-xs text-muted">{{ fmtNumber(totals.scored) }} com nota</dd>
         </div>
-        <div v-reveal="1" class="border-l border-line py-6 pl-4 md:pl-6" data-testid="kpi-dedup">
+        <div v-reveal="1" class="min-w-0 border-l border-line py-6 pl-4 md:pl-6" data-testid="kpi-dedup">
           <dt class="eyebrow">Taxa de dedup</dt>
-          <dd class="mt-2 text-4xl font-bold md:text-6xl"><CountUp :value="m.dedup.rate * 100" :decimals="1" :format="(n) => `${n.toFixed(1).replace('.', ',')}%`" /></dd>
+          <dd class="kpi-num mt-2 text-4xl font-bold md:text-6xl"><CountUp :value="m.dedup.rate * 100" :decimals="1" :format="(n) => `${n.toFixed(1).replace('.', ',')}%`" /></dd>
           <dd class="mt-1 text-xs text-muted">{{ m.dedup.duplicates }} duplicados em {{ m.dedup.clustered }} itens</dd>
         </div>
-        <div v-reveal="2" class="border-line py-6 pr-4 max-lg:border-t lg:border-l lg:pl-6" data-testid="kpi-failures">
+        <div v-reveal="2" class="min-w-0 border-line py-6 pr-4 max-lg:border-t lg:border-l lg:pl-6" data-testid="kpi-failures">
           <dt class="eyebrow">Falhas</dt>
-          <dd class="mt-2 text-4xl font-bold md:text-6xl" :class="failures > 0 ? 'text-accent' : ''"><CountUp :value="failures" :format="fmtNumber" /></dd>
+          <dd class="kpi-num mt-2 text-4xl font-bold md:text-6xl" :class="failures > 0 ? 'text-accent' : ''"><CountUp :value="failures" :format="fmtNumber" /></dd>
           <dd class="mt-1 text-xs text-muted">{{ m.failures.fetch_errors }} coleta · {{ m.failures.score_failed }} nota</dd>
         </div>
-        <div v-reveal="3" class="border-l border-line py-6 pl-4 max-lg:border-t md:pl-6" data-testid="kpi-tokens">
+        <div v-reveal="3" class="min-w-0 border-l border-line py-6 pl-4 max-lg:border-t md:pl-6" data-testid="kpi-tokens">
           <dt class="eyebrow">Tokens</dt>
-          <dd class="mt-2 text-4xl font-bold md:text-6xl" :title="fmtNumber(m.tokens.total_tokens)"><CountUp :value="m.tokens.total_tokens" :format="fmtCompact" /></dd>
+          <dd class="kpi-num mt-2 text-4xl font-bold md:text-6xl" :title="fmtNumber(m.tokens.total_tokens)"><CountUp :value="m.tokens.total_tokens" :format="fmtCompact" /></dd>
           <dd class="mt-1 text-xs text-muted">{{ fmtNumber(m.tokens.calls) }} chamadas ao Ollama</dd>
         </div>
       </dl>
