@@ -114,7 +114,7 @@ const label = computed(() => (count.value === 1 ? '1 alerta de erro' : `${count.
       tabindex="-1"
       role="region"
       aria-labelledby="admin-alerts-h"
-      class="card-float fixed top-20 right-[max(1rem,env(safe-area-inset-right))] left-[max(1rem,env(safe-area-inset-left))] z-50 max-h-[70dvh] overflow-y-auto overscroll-contain p-4 outline-none max-md:top-[calc(5rem+env(safe-area-inset-top))] max-md:max-h-[calc(100dvh-6rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:absolute md:top-full md:right-0 md:left-auto md:mt-2 md:w-[24rem]"
+      class="card-float fixed top-[calc(var(--header-h)+0.5rem)] right-[max(1rem,env(safe-area-inset-right))] left-[max(1rem,env(safe-area-inset-left))] z-50 max-h-[70dvh] overflow-y-auto overscroll-contain p-4 outline-none max-md:max-h-[calc(100dvh-var(--header-h)-6.5rem-env(safe-area-inset-bottom))] md:absolute md:top-full md:right-0 md:left-auto md:mt-2 md:w-[24rem]"
       data-testid="alerts-panel"
     >
       <header class="mb-3 flex items-center justify-between gap-3">

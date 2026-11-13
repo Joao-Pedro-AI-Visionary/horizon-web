@@ -73,38 +73,44 @@ function isActive(name: string, routeName: unknown) {
       >Pular para o conteúdo</a
     >
 
-    <header class="sticky top-0 z-40 bg-ink/75 pt-[env(safe-area-inset-top)] backdrop-blur-md max-md:static max-md:bg-transparent max-md:backdrop-blur-none">
-      <div class="container-ed flex h-16 items-center gap-4 md:h-20">
-        <RouterLink to="/" class="flex shrink-0 items-center gap-2.5 rounded-full max-md:min-h-11" data-testid="nav-logo" aria-label="Radar by JpDev — início">
-          <img src="/jpdev-logo.png" alt="" class="size-9 rounded-full border border-line bg-surface object-cover object-top" width="36" height="36" />
-          <span class="leading-none">
-            <span class="block font-display text-base font-extrabold tracking-tight">Radar</span>
-            <span class="mt-0.5 block text-[11px] font-medium text-muted">by JpDev</span>
-          </span>
-        </RouterLink>
-
-        <nav class="pill-nav mx-auto hidden items-center gap-1 md:flex" aria-label="Navegação principal">
-          <RouterLink
-            v-for="n in nav"
-            :key="n.to"
-            :to="n.to"
-            :data-testid="`nav-${n.name}`"
-            :aria-current="isActive(n.name, $route.name) ? 'page' : undefined"
-            class="inline-flex min-h-11 items-center gap-2 rounded-full px-4 font-display text-sm font-semibold transition-colors duration-200"
-            :class="isActive(n.name, $route.name) ? 'bg-primary text-ink' : 'text-fg/75 hover:bg-ink hover:text-fg'"
-          >
-            <AppIcon :name="n.icon" :size="16" />
-            <span><span class="lg:hidden">{{ 'short' in n ? n.short : n.label }}</span><span class="hidden lg:inline">{{ n.label }}</span></span>
+    <header class="app-header">
+      <div class="app-bar">
+        <div class="container-ed flex h-(--header-bar) items-center gap-4">
+          <RouterLink to="/" class="flex shrink-0 items-center gap-2.5 rounded-full max-md:min-h-11" data-testid="nav-logo" aria-label="Radar by JpDev — início">
+            <img src="/jpdev-avatar.webp" alt="" class="size-9 rounded-full border border-line bg-surface object-cover" width="36" height="36" />
+            <span class="leading-none">
+              <span class="block font-display text-base font-extrabold tracking-tight">Radar</span>
+              <span class="mt-0.5 block text-[11px] font-medium text-muted">by JpDev</span>
+            </span>
           </RouterLink>
-        </nav>
 
-        <AdminAlerts v-if="admin.status === 'in'" class="ml-auto md:ml-0" />
-        <div class="ml-auto flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted md:ml-0" role="status" data-testid="api-health">
-          <span class="relative flex size-2.5">
-            <span v-if="health === 'ok'" class="absolute inset-0 animate-ping rounded-full bg-ok/50 motion-reduce:hidden" aria-hidden="true" />
-            <span class="relative size-2.5 rounded-full" :class="healthDot[health]" aria-hidden="true" />
-          </span>
-          <span>{{ healthText[health] }}</span>
+          <nav class="pill-nav mx-auto hidden items-center gap-1 md:flex" aria-label="Navegação principal">
+            <RouterLink
+              v-for="n in nav"
+              :key="n.to"
+              :to="n.to"
+              :data-testid="`nav-${n.name}`"
+              :aria-current="isActive(n.name, $route.name) ? 'page' : undefined"
+              class="inline-flex min-h-11 items-center gap-2 rounded-full px-4 font-display text-sm font-semibold transition-colors duration-200"
+              :class="isActive(n.name, $route.name) ? 'bg-primary text-ink' : 'text-fg/75 hover:bg-ink hover:text-fg'"
+            >
+              <AppIcon :name="n.icon" :size="16" />
+              <span><span class="lg:hidden">{{ 'short' in n ? n.short : n.label }}</span><span class="hidden lg:inline">{{ n.label }}</span></span>
+            </RouterLink>
+          </nav>
+
+          <!-- One right-hand group: a single auto margin, so the alerts badge
+               sits next to the health pill instead of floating mid-bar. -->
+          <div class="ml-auto flex items-center gap-3 md:ml-0">
+            <AdminAlerts v-if="admin.status === 'in'" />
+            <div class="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted" role="status" data-testid="api-health">
+              <span class="relative flex size-2.5">
+                <span v-if="health === 'ok'" class="absolute inset-0 animate-ping rounded-full bg-ok/50 motion-reduce:hidden" aria-hidden="true" />
+                <span class="relative size-2.5 rounded-full" :class="healthDot[health]" aria-hidden="true" />
+              </span>
+              <span>{{ healthText[health] }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </header>

@@ -210,7 +210,7 @@ onMounted(async () => {
           <button v-if="admin.canEdit" type="button" class="btn-primary" data-testid="empty-source-new" @click="openCreate"><AppIcon name="plus" :size="16" /> Nova fonte</button>
         </StatePanel>
         <ul v-else class="grid gap-4" data-testid="source-list">
-          <li v-for="(s, i) in sources" :id="`source-${s.id}`" :key="s.id" v-reveal="i" tabindex="-1" class="card-float scroll-mt-24 p-5 outline-none focus-visible:ring-2 focus-visible:ring-primary md:p-6" :class="s.enabled ? '' : 'opacity-70'" :style="{ backgroundImage: `var(--grad-${s.kind})` }" :data-kind="s.kind" data-testid="source-card">
+          <li v-for="(s, i) in sources" :id="`source-${s.id}`" :key="s.id" v-reveal="i" tabindex="-1" class="card-float scroll-mt-2 p-5 outline-none focus-visible:ring-2 focus-visible:ring-primary md:p-6" :class="s.enabled ? '' : 'opacity-70'" :style="{ backgroundImage: `var(--grad-${s.kind})` }" :data-kind="s.kind" data-testid="source-card">
             <div class="flex items-start gap-4">
               <span class="num hidden pt-1.5 text-sm text-muted sm:block" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
               <div class="min-w-0 flex-1">
@@ -311,7 +311,7 @@ onMounted(async () => {
       </section>
 
       <!-- Settings -->
-      <div class="grid h-fit gap-6 xl:sticky xl:top-24 xl:col-span-4">
+      <div class="grid h-fit gap-6 xl:sticky xl:top-(--sticky-top) xl:col-span-4">
       <section class="card-float h-fit p-5 md:p-6" aria-labelledby="settings-h" data-testid="settings">
         <p class="eyebrow text-accent">Configuração</p>
         <h2 id="settings-h" class="mt-1 font-display text-2xl font-bold tracking-tight">Digest e nota de corte</h2>

@@ -84,7 +84,7 @@ function back() {
 </script>
 
 <template>
-  <div class="pt-2 md:pt-6">
+  <div class="pt-4 md:pt-6">
     <!-- Top bar (shot: back · title · action) -->
     <div class="flex items-center justify-between gap-3">
       <button type="button" class="btn-icon" aria-label="Voltar" title="Voltar" data-testid="back" @click="back">
@@ -159,7 +159,7 @@ function back() {
             <h2 id="tags-h" class="sr-only">Tags</h2>
             <ul class="flex flex-wrap gap-2">
               <li v-for="t in item.tags" :key="t">
-                <RouterLink :to="{ path: '/', query: { tag: t } }" class="news-chip min-h-10 px-4 text-xs" data-testid="item-tag">#{{ t }}</RouterLink>
+                <RouterLink :to="{ path: '/', query: { tag: t } }" class="news-chip min-h-10 px-4 text-xs max-md:min-h-11" data-testid="item-tag">#{{ t }}</RouterLink>
               </li>
             </ul>
           </section>

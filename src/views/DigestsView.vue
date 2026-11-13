@@ -88,7 +88,9 @@ function onFrameLoad(e: Event) {
     const target = doc.getElementById(decodeURIComponent(a.getAttribute('href')!.slice(1)))
     if (!target) return
     ev.preventDefault()
-    const top = frame.getBoundingClientRect().top + target.getBoundingClientRect().top + window.scrollY - 96
+    // Land below the fixed top bar (its height includes the notch) + 1rem.
+    const bar = document.querySelector('.app-header')?.getBoundingClientRect().height ?? 80
+    const top = frame.getBoundingClientRect().top + target.getBoundingClientRect().top + window.scrollY - bar - 16
     window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   })
 }
@@ -145,7 +147,7 @@ async function generate() {
 
     <div v-else class="mt-8 grid gap-8 lg:grid-cols-12">
       <!-- Issue index -->
-      <nav class="min-w-0 lg:sticky lg:top-24 lg:col-span-4 lg:h-fit" aria-label="Digests por data">
+      <nav class="min-w-0 lg:sticky lg:top-(--sticky-top) lg:col-span-4 lg:h-fit" aria-label="Digests por data">
         <p class="eyebrow mb-3">Edições</p>
         <ul class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 lg:mx-0 lg:block lg:max-h-[calc(100dvh-12rem)] lg:overflow-y-auto lg:px-0 lg:pb-0" data-testid="digest-list">
           <li v-for="(d, i) in digests" :key="d.id" class="shrink-0 lg:border-t lg:border-line" v-reveal="i">
