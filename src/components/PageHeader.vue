@@ -14,7 +14,7 @@ const words = computed(() => {
 </script>
 
 <template>
-  <header class="pt-2 pb-6 md:pt-6 md:pb-8">
+  <header class="pt-4 pb-6 md:pt-6 md:pb-8">
     <div class="flex items-start justify-between gap-4 text-sm font-medium text-muted">
       <p>{{ section }}</p>
       <div class="text-right"><slot name="meta" /></div>

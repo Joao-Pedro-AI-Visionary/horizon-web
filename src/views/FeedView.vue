@@ -246,7 +246,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
 </script>
 
 <template>
-  <div class="pt-2 md:pt-6">
+  <div class="pt-4 md:pt-6">
     <!-- Header: date line, title, round actions (shot: "News Hub") -->
     <header class="flex items-start justify-between gap-4">
       <div class="min-w-0">
@@ -444,7 +444,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
 
     <div v-else class="mt-8 grid min-h-dvh grid-cols-1 content-start gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       <!-- "Em alta" (shot: Popular News + See All) -->
-      <section v-if="popular.length || (loading && !page)" class="min-w-0 lg:sticky lg:top-24 lg:self-start" aria-labelledby="popular-h">
+      <section v-if="popular.length || (loading && !page)" class="min-w-0 lg:sticky lg:top-(--sticky-top) lg:self-start" aria-labelledby="popular-h">
         <div class="mb-3 flex items-center justify-between gap-3">
           <h2 id="popular-h" class="font-display text-xl font-bold tracking-tight">Em alta</h2>
           <button type="button" class="-mr-2 min-h-11 cursor-pointer rounded-full px-3 text-sm font-semibold text-muted hover:text-fg" data-testid="popular-see-all" @click="seeAllPopular">
@@ -456,9 +456,9 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
       </section>
 
       <!-- List -->
-      <section ref="results" class="min-w-0 scroll-mt-24" :class="popular.length || (loading && !page) ? '' : 'lg:col-span-2'" aria-label="Itens do feed" :aria-busy="loading">
+      <section ref="results" class="min-w-0 scroll-mt-2" :class="popular.length || (loading && !page) ? '' : 'lg:col-span-2'" aria-label="Itens do feed" :aria-busy="loading">
         <div class="mb-3 flex items-baseline justify-between gap-3">
-          <h2 id="list-h" ref="listHeading" tabindex="-1" class="scroll-mt-24 font-display text-xl font-bold tracking-tight" data-testid="list-heading">
+          <h2 id="list-h" ref="listHeading" tabindex="-1" class="scroll-mt-2 font-display text-xl font-bold tracking-tight" data-testid="list-heading">
             {{ filters.sort === 'score' ? 'Maior nota' : 'Mais recentes' }}
           </h2>
           <p v-if="page && page.total" class="text-sm text-muted tabular-nums">página {{ filters.page }} de {{ totalPages }}</p>

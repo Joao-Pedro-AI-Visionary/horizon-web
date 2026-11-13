@@ -60,10 +60,17 @@
   --page-bg: linear-gradient(180deg, #f4f7f4 0%, #eef2ee 45%, #dfeee0 100%);
   /* Page gutter; containers never go under the notch (viewport-fit=cover). */
   --gutter: 1rem;
+  /* Fixed top bar (AppShell): bar height + the notch. Everything that must
+     clear the bar (scroll-padding, inner sticky columns, the alerts panel)
+     reads --header-h; --sticky-top adds a little breathing room. */
+  --header-bar: 4rem;
+  --header-h: calc(var(--header-bar) + env(safe-area-inset-top, 0px));
+  --sticky-top: calc(var(--header-h) + 1rem);
 }
 @media (min-width: 48rem) {
   :root {
     --gutter: 2rem;
+    --header-bar: 5rem;
   }
 }
 
@@ -78,6 +85,8 @@ html {
   /* iOS landscape must not inflate text. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Anchors, #main and keyboard focus land below the fixed top bar. */
+  scroll-padding-top: calc(var(--header-h) + 0.5rem);
 }
 
 body {
@@ -102,6 +111,39 @@ body {
   @apply mx-auto w-full max-w-[1360px];
   padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
   padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+}
+
+/* Top bar: sticky (stays in the flow, so nothing is ever covered), solid page
+   colour up to the notch. The hairline and soft shadow mark the separation
+   from the content scrolling under it. Where scroll-state queries exist they
+   show only while the bar is stuck (page scrolled); elsewhere the hairline is
+   always on. The query styles a descendant, so the paint lives on .app-bar. */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.app-bar {
+  padding-top: env(safe-area-inset-top, 0px);
+  background-color: var(--color-ink);
+  border-bottom: 1px solid var(--color-line);
+  transition:
+    border-color var(--dur-base) ease,
+    box-shadow var(--dur-base) ease;
+}
+@supports (container-type: scroll-state) {
+  .app-header {
+    container: app-header / scroll-state;
+  }
+  .app-bar {
+    border-bottom-color: transparent;
+  }
+  @container app-header scroll-state(stuck: top) {
+    .app-bar {
+      border-bottom-color: var(--color-line);
+      box-shadow: 0 10px 24px -18px rgb(18 26 20 / 0.28);
+    }
+  }
 }
 
 /* ---------- Type ---------- */
