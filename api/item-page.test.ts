@@ -29,6 +29,13 @@ describe('Vercel SEO SSR & static crawler files', () => {
     expect(rendered).toContain('\\u003cscript\\u003e')
     expect(rendered).not.toContain('<h1>Benchmarks <script>')
     expect(rendered).toContain('<h1>Benchmarks &lt;script&gt;alert(1)&lt;/script&gt; &amp; Rust</h1>')
+
+    const unsafeRendered = renderItemHtml(template, {
+      id: 78,
+      title: 'Unsafe URL check',
+      url: 'javascript:alert(1)',
+    })
+    expect(unsafeRendered).not.toContain('javascript:alert(1)')
   })
 
   it('ships valid public robots.txt allowing crawlers and referencing sitemap', () => {

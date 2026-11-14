@@ -43,12 +43,25 @@ function replaceTag(html: string, pattern: RegExp, replacement: string): string 
   return pattern.test(html) ? html.replace(pattern, replacement) : html.replace('</head>', `    ${replacement}\n  </head>`)
 }
 
+function safeHttpUrl(raw?: string): string {
+  if (!raw) return ''
+  try {
+    const parsed = new URL(raw.trim())
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
 function requestOrigin(req: IncomingMessage): string {
+  const configured = process.env.PUBLIC_SITE_URL?.trim()
+  if (configured) return configured.replace(/\/+$/, '')
   const rawHost = req.headers['x-forwarded-host'] ?? req.headers.host
   const host = (Array.isArray(rawHost) ? rawHost[0] : rawHost)?.split(',')[0]?.trim()
-  if (!host) return DEFAULT_ORIGIN
+  if (!host || !/^[a-z0-9.-]+(?::\d{1,5})?$/i.test(host)) return DEFAULT_ORIGIN
   const rawProto = req.headers['x-forwarded-proto']
-  const proto = (Array.isArray(rawProto) ? rawProto[0] : rawProto)?.split(',')[0]?.trim() || 'https'
+  const protoCand = (Array.isArray(rawProto) ? rawProto[0] : rawProto)?.split(',')[0]?.trim().toLowerCase()
+  const proto = protoCand === 'http' || protoCand === 'https' ? protoCand : 'https'
   return `${proto}://${host}`.replace(/\/+$/, '')
 }
 
@@ -135,7 +148,8 @@ export function renderItemHtml(templateHtml: string, item: ItemPageData, origin 
 
   const sourceLine = item.source_name ? `<p>${escapeHtml(item.source_name)}</p>` : ''
   const scoreLine = item.score != null ? `<p>Nota IA: ${escapeHtml(item.score.toFixed(1))}</p>` : ''
-  const linkLine = item.url ? `<p><a href="${escapeHtml(item.url)}" rel="noopener noreferrer">Ler fonte original</a></p>` : ''
+  const safeOrigUrl = safeHttpUrl(item.url)
+  const linkLine = safeOrigUrl ? `<p><a href="${escapeHtml(safeOrigUrl)}" rel="noopener noreferrer">Ler fonte original</a></p>` : ''
   const fallbackBody = `<main style="max-width:720px;margin:2rem auto;padding:0 1rem;font-family:system-ui,sans-serif"><h1>${escapeHtml(item.title)}</h1>${sourceLine}${scoreLine}<p>${escapeHtml(desc)}</p>${linkLine}</main>`
   html = html.replace(/<div id="app"><\/div>/i, `<div id="app">${fallbackBody}</div>`)
   return html

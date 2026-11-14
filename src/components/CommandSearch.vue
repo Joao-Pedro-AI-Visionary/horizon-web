@@ -50,18 +50,19 @@ async function runSearch(term: string) {
     activeIndex.value = 0
     return
   }
-  ctrl = new AbortController()
+  const myCtrl = (ctrl = new AbortController())
   loading.value = true
   errText.value = ''
   try {
-    const page = await api.feed({ q: clean, page: 1, page_size: 7 }, ctrl.signal)
+    const page = await api.feed({ q: clean, page: 1, page_size: 7 }, myCtrl.signal)
+    if (ctrl !== myCtrl) return
     results.value = page.items ?? []
     activeIndex.value = 0
   } catch (err) {
     if ((err as Error).name === 'AbortError') return
     errText.value = errorMessage(err)
   } finally {
-    loading.value = false
+    if (ctrl === myCtrl) loading.value = false
   }
 }
 

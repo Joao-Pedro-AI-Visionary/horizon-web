@@ -24,9 +24,17 @@ export function resolveUpstreamPath(kind: string | null, rawId: string | null): 
   }
 }
 
+const FALLBACK_SITEMAP = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://horizon-web-eight.vercel.app/</loc></url>
+  <url><loc>https://horizon-web-eight.vercel.app/digests</loc></url>
+  <url><loc>https://horizon-web-eight.vercel.app/metrics</loc></url>
+</urlset>`
+
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const reqUrl = new URL(req.url ?? '/', 'http://localhost')
-  const target = resolveUpstreamPath(reqUrl.searchParams.get('kind'), reqUrl.searchParams.get('id'))
+  const kind = reqUrl.searchParams.get('kind')
+  const target = resolveUpstreamPath(kind, reqUrl.searchParams.get('id'))
   if (!target) {
     res.statusCode = 400
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -42,6 +50,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       signal: ctrl.signal,
     })
     if (!upstream.ok) {
+      if (kind === 'sitemap') {
+        res.statusCode = 200
+        res.setHeader('Content-Type', target.defaultContentType)
+        res.setHeader('Cache-Control', 'public, s-maxage=60')
+        res.end(FALLBACK_SITEMAP)
+        return
+      }
       res.statusCode = upstream.status === 404 ? 404 : 502
       res.setHeader('Content-Type', 'text/plain; charset=utf-8')
       res.end(upstream.status === 404 ? 'not found' : 'upstream error')
@@ -54,6 +69,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
     res.end(body)
   } catch {
+    if (kind === 'sitemap') {
+      res.statusCode = 200
+      res.setHeader('Content-Type', target.defaultContentType)
+      res.setHeader('Cache-Control', 'public, s-maxage=60')
+      res.end(FALLBACK_SITEMAP)
+      return
+    }
     res.statusCode = 502
     res.setHeader('Content-Type', 'text/plain; charset=utf-8')
     res.end('upstream unavailable')
