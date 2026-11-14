@@ -143,23 +143,38 @@ async function load() {
 }
 // "Em alta" deck: the HN-decayed trending items under the same filters (falls back to score if >72h archive).
 const popular = ref<FeedItem[]>([])
+const popularLoading = ref(true)
 const popularSort = ref<'trending' | 'score'>('trending')
 let pctrl: AbortController | undefined
 async function loadPopular() {
   pctrl?.abort()
-  pctrl = new AbortController()
+  const myCtrl = (pctrl = new AbortController())
+  popularLoading.value = true
   try {
     const p = popularParams()
-    let res = (await api.feed(p, pctrl.signal)).items ?? []
+    let res: FeedItem[] = []
     let mode: 'trending' | 'score' = 'trending'
+    try {
+      res = (await api.feed(p, myCtrl.signal)).items ?? []
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') throw err
+      if (err instanceof ApiError && err.status === 400) {
+        res = (await api.feed({ ...p, sort: 'score' }, myCtrl.signal)).items ?? []
+        mode = 'score'
+      } else {
+        throw err
+      }
+    }
     if (res.length === 0 && !p.q && !p.tag && !p.source_id && !p.min_score && !p.from) {
-      res = (await api.feed({ ...p, sort: 'score' }, pctrl.signal)).items ?? []
+      res = (await api.feed({ ...p, sort: 'score' }, myCtrl.signal)).items ?? []
       mode = 'score'
     }
     popular.value = res
     popularSort.value = mode
   } catch (err) {
     if ((err as Error).name !== 'AbortError') popular.value = []
+  } finally {
+    if (pctrl === myCtrl) popularLoading.value = false
   }
 }
 // Popular only depends on the filters, not on the list's order or page.
@@ -485,19 +500,19 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
 
     <div v-else class="mt-8 grid min-h-dvh grid-cols-1 content-start gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       <!-- "Em alta" (shot: Popular News + See All) -->
-      <section v-if="popular.length || (loading && !page)" class="min-w-0 lg:sticky lg:top-(--sticky-top) lg:self-start" aria-labelledby="popular-h">
+      <section v-if="popular.length || popularLoading || (loading && !page)" class="min-w-0 lg:sticky lg:top-(--sticky-top) lg:self-start" aria-labelledby="popular-h">
         <div class="mb-3 flex items-center justify-between gap-3">
           <h2 id="popular-h" class="font-display text-xl font-bold tracking-tight">Em alta</h2>
           <button type="button" class="-mr-2 min-h-11 cursor-pointer rounded-full px-3 text-sm font-semibold text-muted hover:text-fg" data-testid="popular-see-all" @click="seeAllPopular">
             Ver todas<span class="sr-only"> as notícias por maior nota</span>
           </button>
         </div>
-        <div v-if="!popular.length" class="skeleton h-72" aria-hidden="true" />
+        <div v-if="!popular.length" class="skeleton h-[23rem]" aria-hidden="true" />
         <PopularDeck v-else :items="popular" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" @vote="applyVote" />
       </section>
 
       <!-- List -->
-      <section ref="results" class="min-w-0 scroll-mt-2" :class="popular.length || (loading && !page) ? '' : 'lg:col-span-2'" aria-label="Itens do feed" :aria-busy="loading">
+      <section ref="results" class="min-w-0 scroll-mt-2" :class="popular.length || popularLoading || (loading && !page) ? '' : 'lg:col-span-2'" aria-label="Itens do feed" :aria-busy="loading">
         <div class="mb-3 flex items-baseline justify-between gap-3">
           <h2 id="list-h" ref="listHeading" tabindex="-1" class="scroll-mt-2 font-display text-xl font-bold tracking-tight" data-testid="list-heading">
             {{ filters.sort === 'score' ? 'Maior nota' : filters.sort === 'trending' ? 'Em alta' : 'Mais recentes' }}
