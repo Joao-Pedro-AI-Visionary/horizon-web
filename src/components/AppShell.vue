@@ -6,6 +6,7 @@ import { useAdmin } from '../stores/admin'
 import { useToasts } from '../stores/toast'
 import AdminAlerts from './AdminAlerts.vue'
 import AppIcon from './AppIcon.vue'
+import InstallPrompt from './InstallPrompt.vue'
 
 const admin = useAdmin()
 const toasts = useToasts()
@@ -118,6 +119,8 @@ function isActive(name: string, routeName: unknown) {
     <main id="main" tabindex="-1" class="relative isolate z-10 container-ed pb-10 md:pb-12">
       <slot />
     </main>
+
+    <InstallPrompt />
 
     <!-- Discreet admin access: only "Entrar" (logged out) or "Sair" (logged in). -->
     <footer class="container-ed flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5 pb-[calc(8rem+env(safe-area-inset-bottom))] text-xs text-muted md:pb-[max(2rem,env(safe-area-inset-bottom))]">

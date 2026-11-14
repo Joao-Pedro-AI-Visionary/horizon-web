@@ -8,6 +8,21 @@
       "includeFiles": "dist/index.html"
     }
   },
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/items/:id(\\d+)", "destination": "/api/item-page?id=:id" },
     { "source": "/og/items/:id(\\d+).png", "destination": "/api/seo-proxy?kind=og&id=:id" },
@@ -15,7 +30,7 @@
     { "source": "/rss.xml", "destination": "/api/seo-proxy?kind=rss-feed" },
     { "source": "/digests/rss.xml", "destination": "/api/seo-proxy?kind=rss-digests" },
     {
-      "source": "/((?!assets/|api/|robots\\.txt|sitemap\\.xml|rss\\.xml|digests/rss\\.xml|og/|manifest\\.webmanifest|sw\\.js|favicon-32\\.png|apple-touch-icon\\.png|jpdev-).*)",
+      "source": "/((?!assets/|api/|icons/|robots\\.txt|sitemap\\.xml|rss\\.xml|digests/rss\\.xml|og/|manifest\\.webmanifest|sw\\.js|favicon-32\\.png|apple-touch-icon\\.png|jpdev-).*)",
       "destination": "/index.html"
     }
   ]
