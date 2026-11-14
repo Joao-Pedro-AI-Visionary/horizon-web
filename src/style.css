@@ -480,6 +480,13 @@ body {
   animation: pulse-soft 1.4s ease-in-out infinite;
 }
 
+/* Keep below-fold feed cards out of the first paint without changing the
+   accessible DOM. The intrinsic size reserves space, preventing CLS. */
+.feed-item:nth-child(n + 4) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 18rem;
+}
+
 /* Reveal on scroll (v-reveal): rise + fade, staggered by --d. */
 [data-reveal] {
   opacity: 0;

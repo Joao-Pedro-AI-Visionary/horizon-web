@@ -12,6 +12,7 @@ import SegmentedControl from '../components/SegmentedControl.vue'
 import StatePanel from '../components/StatePanel.vue'
 import TimelineScrubber from '../components/TimelineScrubber.vue'
 import { fmtNumber, fmtScore, fmtToday } from '../lib/format'
+import { scheduleIdle } from '../lib/idle'
 import { reducedMotion } from '../lib/motion'
 import { rankTags } from '../lib/tags'
 import { useAdmin } from '../stores/admin'
@@ -72,6 +73,9 @@ const advancedCount = computed(() => {
 const filtersOpen = ref(advancedCount.value > 0)
 watch(advancedCount, (n, old) => {
   if (n > 0 && old === 0) filtersOpen.value = true
+})
+watch(filtersOpen, (open) => {
+  if (open) ensureTags()
 })
 
 // Non-time filters shared with the scrubber histogram.
@@ -158,13 +162,24 @@ watch(popularKey, loadPopular)
 
 // Category chips: "Todas" plus the most frequent real tags of the feed.
 const topTags = ref<string[]>([])
+const tagsLoaded = ref(false)
+const items = computed<FeedItem[]>(() => page.value?.items ?? [])
 async function loadTags() {
   try {
     topTags.value = rankTags((await api.feed({ period: 'all', sort: 'score', page: 1, page_size: 100 })).items ?? [], 6)
+    tagsLoaded.value = true
   } catch {
-    topTags.value = []
+    // Keep the useful first-page tags if the optional enrichment fails.
   }
 }
+function ensureTags() {
+  if (tagsLoaded.value || cancelIdleTags) return
+  // Doherty: optional all-feed tag enrichment waits until the filter workflow needs it.
+  cancelIdleTags = scheduleIdle(() => void loadTags())
+}
+watch(items, (current) => {
+  if (!tagsLoaded.value) topTags.value = rankTags(current, 6)
+}, { deep: true })
 const chips = computed(() => {
   const t = filters.value.tag
   return t && !topTags.value.includes(t) ? [t, ...topTags.value] : topTags.value
@@ -193,10 +208,10 @@ function goPage(p: number) {
 const sources = ref<Source[]>([])
 const threshold = ref(6)
 const thresholdLoaded = ref(false)
+let cancelIdleTags: (() => void) | undefined
 onMounted(async () => {
   load()
   loadPopular()
-  loadTags()
   const [s, st] = await Promise.allSettled([api.sources(), api.settings()])
   if (s.status === 'fulfilled') sources.value = s.value.sources ?? []
   if (st.status === 'fulfilled') {
@@ -207,9 +222,9 @@ onMounted(async () => {
 onUnmounted(() => {
   ctrl?.abort()
   pctrl?.abort()
+  cancelIdleTags?.()
 })
 
-const items = computed<FeedItem[]>(() => page.value?.items ?? [])
 const totalPages = computed(() => (page.value ? Math.max(1, Math.ceil(page.value.total / page.value.page_size)) : 1))
 const enabledSources = computed(() => sources.value.filter((s) => s.enabled).length)
 const hasFilters = computed(() => {
@@ -479,7 +494,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
 
         <template v-else>
           <ul class="grid grid-cols-1 gap-4 transition-opacity duration-200 md:grid-cols-2" :class="[loading ? 'opacity-50' : '', popular.length ? '' : 'xl:grid-cols-3']" data-testid="feed-list">
-            <li v-for="(it, i) in items" :key="it.item_id" class="grid min-w-0 grid-cols-1">
+            <li v-for="(it, i) in items" :key="it.item_id" v-memo="[it.item_id, it.score, it.tags, threshold, filters.tag]" class="feed-item grid min-w-0 grid-cols-1">
               <NewsCard v-reveal="i" :item="it" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" />
             </li>
           </ul>
