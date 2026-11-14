@@ -34,7 +34,9 @@ describe('Vercel SEO SSR & static crawler files', () => {
       (m) => JSON.parse(m[1]) as Record<string, any>,
     )
     const ld = blocks.find((b) => b['@type'] === 'NewsArticle')
-    expect(ld).toBeTruthy()
+    if (!ld) {
+      throw new Error('missing NewsArticle JSON-LD')
+    }
     expect(ld['@type']).toBe('NewsArticle')
     expect(ld.headline).toBe('Benchmarks <script>alert(1)</script> & Rust')
     expect(ld.description).toBe('Resumo curto e objetivo para motores de busca.')
@@ -60,7 +62,9 @@ describe('Vercel SEO SSR & static crawler files', () => {
     const rawLd = [...rendered.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
       .map((m) => m[1])
       .find((block) => block.includes('NewsArticle'))
-    expect(rawLd).toBeTruthy()
+    if (!rawLd) {
+      throw new Error('missing raw NewsArticle JSON-LD')
+    }
     expect(rawLd).toContain('\\u003cscript\\u003e')
     expect(rawLd).not.toContain('<script>')
 
@@ -114,6 +118,9 @@ describe('Vercel SEO SSR & static crawler files', () => {
     const types = (ld['@graph'] as any[]).map((node) => node['@type'])
     expect(types).toEqual(expect.arrayContaining(['Organization', 'WebSite']))
     const site = (ld['@graph'] as any[]).find((node) => node['@type'] === 'WebSite')
+    if (!site) {
+      throw new Error('missing WebSite JSON-LD')
+    }
     expect(site.potentialAction['@type']).toBe('SearchAction')
     expect(site.potentialAction.target.urlTemplate).toBe(
       'https://horizon-web-eight.vercel.app/?q={search_term_string}',
