@@ -49,6 +49,11 @@ export interface VoteResult {
   user_vote: -1 | 0 | 1
 }
 
+export interface NewsletterResult {
+  status: 'pending' | 'active' | 'unsubscribed' | string
+  message: string
+}
+
 /** GET /api/feed/timeline: feed rows per calendar day (settings timezone). */
 export interface TimelineBucket {
   day: string // YYYY-MM-DD

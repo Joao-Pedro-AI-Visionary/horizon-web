@@ -13,6 +13,8 @@ export const router = createRouter({
     { path: '/reset', name: 'reset', component: () => import('../views/ResetView.vue'), meta: { title: 'Nova senha' } },
     { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { title: 'Entrar' } },
     { path: '/metrics', name: 'metrics', component: () => import('../views/MetricsView.vue'), meta: { title: 'Métricas' } },
+    { path: '/newsletter/confirm', name: 'newsletter-confirm', component: () => import('../views/NewsletterActionView.vue'), meta: { title: 'Confirmar newsletter' } },
+    { path: '/newsletter/unsubscribe', name: 'newsletter-unsubscribe', component: () => import('../views/NewsletterActionView.vue'), meta: { title: 'Descadastrar newsletter' } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { title: 'Não encontrado' } },
   ],
   // Filter changes only touch the query: keep the scroll position there.

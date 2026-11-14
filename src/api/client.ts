@@ -8,6 +8,7 @@ import type {
   FeedTimeline,
   ItemDetail,
   Metrics,
+  NewsletterResult,
   Settings,
   Source,
   SourceInput,
@@ -110,6 +111,12 @@ export const api = {
   item: (id: number, signal?: AbortSignal) => request<ItemDetail>('GET', `/api/items/${id}`, undefined, signal, false, true),
   voteItem: (id: number, vote: -1 | 0 | 1, dwell_ms: number) =>
     request<VoteResult>('POST', `/api/items/${id}/vote`, { vote, dwell_ms }, undefined, false, true),
+  subscribeNewsletter: (email: string) =>
+    request<NewsletterResult>('POST', '/api/newsletter/subscribe', { email }),
+  confirmNewsletter: (token: string) =>
+    request<NewsletterResult>('POST', '/api/newsletter/confirm', { token }),
+  unsubscribeNewsletter: (token: string) =>
+    request<NewsletterResult>('POST', '/api/newsletter/unsubscribe', { token }),
   digests: () => request<{ digests: Digest[] | null }>('GET', '/api/digests'),
   digest: (date: string) => request<Digest>('GET', `/api/digests/${encodeURIComponent(date)}`),
   digestHtmlUrl: (date: string) => `${BASE}/api/digests/${encodeURIComponent(date)}?format=html`,

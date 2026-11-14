@@ -7,6 +7,7 @@ import AppIcon from '../components/AppIcon.vue'
 import CountUp from '../components/CountUp.vue'
 import DisclosurePanel from '../components/DisclosurePanel.vue'
 import NewsCard from '../components/NewsCard.vue'
+import NewsletterSignup from '../components/NewsletterSignup.vue'
 import PopularDeck from '../components/PopularDeck.vue'
 import SegmentedControl from '../components/SegmentedControl.vue'
 import StatePanel from '../components/StatePanel.vue'
@@ -539,5 +540,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
         </template>
       </section>
     </div>
+
+    <NewsletterSignup id-prefix="feed-nl" class="mt-8" />
   </div>
 </template>
