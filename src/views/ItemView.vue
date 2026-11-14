@@ -4,10 +4,12 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api, errorMessage } from '../api/client'
 import type { ItemDetail, VoteResult } from '../api/types'
 import AppIcon from '../components/AppIcon.vue'
+import ShareBar from '../components/ShareBar.vue'
 import SourceAvatar from '../components/SourceAvatar.vue'
 import StatePanel from '../components/StatePanel.vue'
 import VoteControls from '../components/VoteControls.vue'
 import { fmtDateLong, fmtDateTime, fmtRelative, fmtScore, hostOf, kindLabel } from '../lib/format'
+import { applyPageMeta } from '../lib/seo'
 import { useToasts } from '../stores/toast'
 import { staggerDelay } from '../lib/motion'
 
@@ -27,8 +29,16 @@ async function load() {
   error.value = ''
   notFound.value = false
   try {
-    item.value = await api.item(Number(route.params.id), ctrl.signal)
+    const loaded = await api.item(Number(route.params.id), ctrl.signal)
+    item.value = loaded
     visibleSince.value = Date.now()
+    applyPageMeta({
+      title: `${loaded.title} · Radar by JpDev`,
+      description: loaded.summary || loaded.score_reason || loaded.title,
+      canonicalPath: `/items/${loaded.id}`,
+      ogType: 'article',
+      ogImage: `/og/items/${loaded.id}.png`,
+    })
   } catch (err) {
     if ((err as Error).name === 'AbortError') return
     notFound.value = (err as { status?: number }).status === 404
@@ -186,6 +196,8 @@ function back() {
               @voted="onVoted"
             />
           </div>
+
+          <ShareBar :item-id="item.id" :title="item.title" />
 
           <section v-if="item.content" class="mt-8" aria-labelledby="content-h">
             <h2 id="content-h" class="eyebrow">Conteúdo coletado</h2>

@@ -120,8 +120,18 @@ function isActive(name: string, routeName: unknown) {
     </main>
 
     <!-- Discreet admin access: only "Entrar" (logged out) or "Sair" (logged in). -->
-    <footer class="container-ed flex items-center justify-between gap-4 border-t border-line pt-5 pb-[calc(8rem+env(safe-area-inset-bottom))] text-xs text-muted md:pb-[max(2rem,env(safe-area-inset-bottom))]">
-      <span>Radar by JpDev</span>
+    <footer class="container-ed flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5 pb-[calc(8rem+env(safe-area-inset-bottom))] text-xs text-muted md:pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div class="flex flex-wrap items-center gap-3">
+        <span>Radar by JpDev</span>
+        <a href="/rss.xml" class="inline-flex min-h-11 items-center gap-1 rounded-full px-2 underline-offset-4 hover:text-fg hover:underline" data-testid="rss-feed-link">
+          <AppIcon name="feed" :size="13" />
+          RSS Feed
+        </a>
+        <a href="/digests/rss.xml" class="inline-flex min-h-11 items-center gap-1 rounded-full px-2 underline-offset-4 hover:text-fg hover:underline" data-testid="rss-digests-link">
+          <AppIcon name="digest" :size="13" />
+          RSS Digests
+        </a>
+      </div>
       <span v-if="admin.status === 'in'" class="flex items-center gap-3">
         <span data-testid="footer-user">{{ admin.username }}</span>
         <button type="button" class="min-h-11 rounded-full px-2 font-medium text-fg underline-offset-4 hover:underline max-md:min-w-11" data-testid="logout" @click="logout">Sair</button>

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import FeedView from '../views/FeedView.vue'
+import { applyPageMeta } from '../lib/seo'
 import { useAdmin } from '../stores/admin'
 
 export const router = createRouter({
@@ -34,5 +35,10 @@ router.afterEach((to) => {
   // A logout while this navigation was still loading its page would land on
   // an admin page without a session: send it to the feed instead.
   if (to.meta.admin && !useAdmin().canEdit) router.replace('/')
-  document.title = `${String(to.meta.title ?? 'Radar')} · Radar by JpDev`
+  const pageTitle = `${String(to.meta.title ?? 'Radar')} · Radar by JpDev`
+  applyPageMeta({
+    title: pageTitle,
+    description: 'Curadoria diária de tecnologia e engenharia pontuada por IA, com digest diário e tendências.',
+    canonicalPath: to.path || '/',
+  })
 })

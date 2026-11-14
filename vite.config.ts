@@ -14,6 +14,10 @@ export default defineConfig(({ mode }) => {
   const proxy = {
     '/api': { target, changeOrigin: true },
     '/healthz': { target, changeOrigin: true },
+    '/rss.xml': { target, changeOrigin: true },
+    '/digests/rss.xml': { target, changeOrigin: true },
+    '/sitemap.xml': { target, changeOrigin: true },
+    '/og/items': { target, changeOrigin: true },
   }
   // https://vite.dev/config/
   return {
