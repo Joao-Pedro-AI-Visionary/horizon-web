@@ -2,16 +2,18 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError, api, errorMessage } from '../api/client'
-import type { CollectReport, FeedItem, FeedPage, FeedParams, Source, TimelineParams } from '../api/types'
+import type { CollectReport, FeedItem, FeedPage, FeedParams, Source, TimelineParams, VoteResult } from '../api/types'
 import AppIcon from '../components/AppIcon.vue'
 import CountUp from '../components/CountUp.vue'
 import DisclosurePanel from '../components/DisclosurePanel.vue'
 import NewsCard from '../components/NewsCard.vue'
+import NewsletterSignup from '../components/NewsletterSignup.vue'
 import PopularDeck from '../components/PopularDeck.vue'
 import SegmentedControl from '../components/SegmentedControl.vue'
 import StatePanel from '../components/StatePanel.vue'
 import TimelineScrubber from '../components/TimelineScrubber.vue'
 import { fmtNumber, fmtScore, fmtToday } from '../lib/format'
+import { scheduleIdle } from '../lib/idle'
 import { reducedMotion } from '../lib/motion'
 import { rankTags } from '../lib/tags'
 import { useAdmin } from '../stores/admin'
@@ -61,6 +63,7 @@ const periods = [
 const sorts = [
   { v: 'recent', l: 'Recentes' },
   { v: 'score', l: 'Maior nota' },
+  { v: 'trending', l: 'Em alta' },
 ] as const
 
 // Source, tag and minimum score sit in a disclosure (progressive
@@ -72,6 +75,9 @@ const advancedCount = computed(() => {
 const filtersOpen = ref(advancedCount.value > 0)
 watch(advancedCount, (n, old) => {
   if (n > 0 && old === 0) filtersOpen.value = true
+})
+watch(filtersOpen, (open) => {
+  if (open) ensureTags()
 })
 
 // Non-time filters shared with the scrubber histogram.
@@ -135,22 +141,46 @@ async function load() {
     loading.value = false
   }
 }
-// "Em alta" deck: the top-scored items under the same filters.
+// "Em alta" deck: the HN-decayed trending items under the same filters (falls back to score if >72h archive).
 const popular = ref<FeedItem[]>([])
+const popularLoading = ref(true)
+const popularSort = ref<'trending' | 'score'>('trending')
 let pctrl: AbortController | undefined
 async function loadPopular() {
   pctrl?.abort()
-  pctrl = new AbortController()
+  const myCtrl = (pctrl = new AbortController())
+  popularLoading.value = true
   try {
-    popular.value = (await api.feed(popularParams(), pctrl.signal)).items ?? []
+    const p = popularParams()
+    let res: FeedItem[] = []
+    let mode: 'trending' | 'score' = 'trending'
+    try {
+      res = (await api.feed(p, myCtrl.signal)).items ?? []
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') throw err
+      if (err instanceof ApiError && err.status === 400) {
+        res = (await api.feed({ ...p, sort: 'score' }, myCtrl.signal)).items ?? []
+        mode = 'score'
+      } else {
+        throw err
+      }
+    }
+    if (res.length === 0 && !p.q && !p.tag && !p.source_id && !p.min_score && !p.from) {
+      res = (await api.feed({ ...p, sort: 'score' }, myCtrl.signal)).items ?? []
+      mode = 'score'
+    }
+    popular.value = res
+    popularSort.value = mode
   } catch (err) {
     if ((err as Error).name !== 'AbortError') popular.value = []
+  } finally {
+    if (pctrl === myCtrl) popularLoading.value = false
   }
 }
 // Popular only depends on the filters, not on the list's order or page.
 function popularParams(): FeedParams {
   const f = filters.value
-  return { q: f.q, tag: f.tag, source_id: f.source_id, period: f.period, from: f.from, to: f.to, min_score: f.min_score, sort: 'score', page: 1, page_size: 5 }
+  return { q: f.q, tag: f.tag, source_id: f.source_id, period: f.period, from: f.from, to: f.to, min_score: f.min_score, sort: 'trending', page: 1, page_size: 5 }
 }
 const popularKey = computed(() => JSON.stringify(popularParams()))
 watch(filters, load, { deep: true })
@@ -158,13 +188,24 @@ watch(popularKey, loadPopular)
 
 // Category chips: "Todas" plus the most frequent real tags of the feed.
 const topTags = ref<string[]>([])
+const tagsLoaded = ref(false)
+const items = computed<FeedItem[]>(() => page.value?.items ?? [])
 async function loadTags() {
   try {
     topTags.value = rankTags((await api.feed({ period: 'all', sort: 'score', page: 1, page_size: 100 })).items ?? [], 6)
+    tagsLoaded.value = true
   } catch {
-    topTags.value = []
+    // Keep the useful first-page tags if the optional enrichment fails.
   }
 }
+function ensureTags() {
+  if (tagsLoaded.value || cancelIdleTags) return
+  // Doherty: optional all-feed tag enrichment waits until the filter workflow needs it.
+  cancelIdleTags = scheduleIdle(() => void loadTags())
+}
+watch(items, (current) => {
+  if (!tagsLoaded.value) topTags.value = rankTags(current, 6)
+}, { deep: true })
 const chips = computed(() => {
   const t = filters.value.tag
   return t && !topTags.value.includes(t) ? [t, ...topTags.value] : topTags.value
@@ -173,13 +214,28 @@ function toggleTag(t: string | undefined) {
   setFilter({ tag: t && filters.value.tag !== t ? t : undefined })
 }
 
-// "Ver todas": the list switches to the highest scores and takes the focus.
+// "Ver todas": the list switches to trending (or highest scores) and takes focus.
 const listHeading = ref<HTMLElement | null>(null)
 async function seeAllPopular() {
-  if (filters.value.sort !== 'score') setFilter({ sort: 'score' })
+  const target = popularSort.value
+  if (filters.value.sort !== target) setFilter({ sort: target })
   await nextTick()
   listHeading.value?.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' })
   listHeading.value?.focus({ preventScroll: true })
+}
+
+function applyVote(res: VoteResult) {
+  const patch = (list: FeedItem[] | null | undefined) => {
+    if (!list) return
+    for (const it of list) {
+      if (it.item_id === res.item_id) {
+        it.likes = res.likes
+        it.user_vote = res.user_vote
+      }
+    }
+  }
+  patch(popular.value)
+  patch(page.value?.items)
 }
 
 // Filter changes keep the scroll position (router scrollBehavior); only the
@@ -193,10 +249,10 @@ function goPage(p: number) {
 const sources = ref<Source[]>([])
 const threshold = ref(6)
 const thresholdLoaded = ref(false)
+let cancelIdleTags: (() => void) | undefined
 onMounted(async () => {
   load()
   loadPopular()
-  loadTags()
   const [s, st] = await Promise.allSettled([api.sources(), api.settings()])
   if (s.status === 'fulfilled') sources.value = s.value.sources ?? []
   if (st.status === 'fulfilled') {
@@ -207,9 +263,9 @@ onMounted(async () => {
 onUnmounted(() => {
   ctrl?.abort()
   pctrl?.abort()
+  cancelIdleTags?.()
 })
 
-const items = computed<FeedItem[]>(() => page.value?.items ?? [])
 const totalPages = computed(() => (page.value ? Math.max(1, Math.ceil(page.value.total / page.value.page_size)) : 1))
 const enabledSources = computed(() => sources.value.filter((s) => s.enabled).length)
 const hasFilters = computed(() => {
@@ -444,22 +500,22 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
 
     <div v-else class="mt-8 grid min-h-dvh grid-cols-1 content-start gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       <!-- "Em alta" (shot: Popular News + See All) -->
-      <section v-if="popular.length || (loading && !page)" class="min-w-0 lg:sticky lg:top-(--sticky-top) lg:self-start" aria-labelledby="popular-h">
+      <section v-if="popular.length || popularLoading || (loading && !page)" class="min-w-0 lg:sticky lg:top-(--sticky-top) lg:self-start" aria-labelledby="popular-h">
         <div class="mb-3 flex items-center justify-between gap-3">
           <h2 id="popular-h" class="font-display text-xl font-bold tracking-tight">Em alta</h2>
           <button type="button" class="-mr-2 min-h-11 cursor-pointer rounded-full px-3 text-sm font-semibold text-muted hover:text-fg" data-testid="popular-see-all" @click="seeAllPopular">
             Ver todas<span class="sr-only"> as notícias por maior nota</span>
           </button>
         </div>
-        <div v-if="!popular.length" class="skeleton h-72" aria-hidden="true" />
-        <PopularDeck v-else :items="popular" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" />
+        <div v-if="!popular.length" class="skeleton h-[23rem]" aria-hidden="true" />
+        <PopularDeck v-else :items="popular" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" @vote="applyVote" />
       </section>
 
       <!-- List -->
-      <section ref="results" class="min-w-0 scroll-mt-2" :class="popular.length || (loading && !page) ? '' : 'lg:col-span-2'" aria-label="Itens do feed" :aria-busy="loading">
+      <section ref="results" class="min-w-0 scroll-mt-2" :class="popular.length || popularLoading || (loading && !page) ? '' : 'lg:col-span-2'" aria-label="Itens do feed" :aria-busy="loading">
         <div class="mb-3 flex items-baseline justify-between gap-3">
           <h2 id="list-h" ref="listHeading" tabindex="-1" class="scroll-mt-2 font-display text-xl font-bold tracking-tight" data-testid="list-heading">
-            {{ filters.sort === 'score' ? 'Maior nota' : 'Mais recentes' }}
+            {{ filters.sort === 'score' ? 'Maior nota' : filters.sort === 'trending' ? 'Em alta' : 'Mais recentes' }}
           </h2>
           <p v-if="page && page.total" class="text-sm text-muted tabular-nums">página {{ filters.page }} de {{ totalPages }}</p>
         </div>
@@ -479,8 +535,8 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
 
         <template v-else>
           <ul class="grid grid-cols-1 gap-4 transition-opacity duration-200 md:grid-cols-2" :class="[loading ? 'opacity-50' : '', popular.length ? '' : 'xl:grid-cols-3']" data-testid="feed-list">
-            <li v-for="(it, i) in items" :key="it.item_id" class="grid min-w-0 grid-cols-1">
-              <NewsCard v-reveal="i" :item="it" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" />
+            <li v-for="(it, i) in items" :key="it.item_id" v-memo="[it.item_id, it.score, it.tags, it.likes, it.user_vote, threshold, filters.tag]" class="feed-item grid min-w-0 grid-cols-1">
+              <NewsCard v-reveal="i === 0 ? false : i" :item="it" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" @vote="applyVote" />
             </li>
           </ul>
 
@@ -499,5 +555,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
         </template>
       </section>
     </div>
+
+    <NewsletterSignup id-prefix="feed-nl" class="mt-8" />
   </div>
 </template>

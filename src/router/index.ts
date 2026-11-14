@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import FeedView from '../views/FeedView.vue'
+import { applyPageMeta } from '../lib/seo'
 import { useAdmin } from '../stores/admin'
 
 export const router = createRouter({
@@ -13,6 +14,8 @@ export const router = createRouter({
     { path: '/reset', name: 'reset', component: () => import('../views/ResetView.vue'), meta: { title: 'Nova senha' } },
     { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { title: 'Entrar' } },
     { path: '/metrics', name: 'metrics', component: () => import('../views/MetricsView.vue'), meta: { title: 'Métricas' } },
+    { path: '/newsletter/confirm', name: 'newsletter-confirm', component: () => import('../views/NewsletterActionView.vue'), meta: { title: 'Confirmar newsletter' } },
+    { path: '/newsletter/unsubscribe', name: 'newsletter-unsubscribe', component: () => import('../views/NewsletterActionView.vue'), meta: { title: 'Descadastrar newsletter' } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { title: 'Não encontrado' } },
   ],
   // Filter changes only touch the query: keep the scroll position there.
@@ -32,5 +35,10 @@ router.afterEach((to) => {
   // A logout while this navigation was still loading its page would land on
   // an admin page without a session: send it to the feed instead.
   if (to.meta.admin && !useAdmin().canEdit) router.replace('/')
-  document.title = `${String(to.meta.title ?? 'Radar')} · Radar by JpDev`
+  const pageTitle = `${String(to.meta.title ?? 'Radar')} · Radar by JpDev`
+  applyPageMeta({
+    title: pageTitle,
+    description: 'Curadoria diária de tecnologia e engenharia pontuada por IA, com digest diário e tendências.',
+    canonicalPath: to.path || '/',
+  })
 })

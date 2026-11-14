@@ -1,3 +1,4 @@
+import { getDeviceId } from '../lib/device'
 import type {
   AdminAlerts,
   CollectReport,
@@ -7,10 +8,12 @@ import type {
   FeedTimeline,
   ItemDetail,
   Metrics,
+  NewsletterResult,
   Settings,
   Source,
   SourceInput,
   TimelineParams,
+  VoteResult,
 } from './types'
 
 /** ApiError carries the HTTP status and the API's {"error": "..."} message. */
@@ -47,17 +50,26 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
 
 const isWrite = (method: string) => method !== 'GET' && method !== 'HEAD'
 
-async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal, withAuth = false): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+  withAuth = false,
+  withDevice = false,
+): Promise<T> {
   let res: Response
   const token = adminToken
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if ((isWrite(method) || withAuth) && token) headers.Authorization = `Bearer ${token}`
+  if (withDevice) headers['X-Device-Id'] = getDeviceId()
   try {
     res = await fetch(BASE + path, {
       method,
       signal,
       headers,
+      ...(withDevice ? { credentials: 'include' as const } : {}),
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch (err) {
@@ -93,10 +105,18 @@ function query(params: object): string {
 }
 
 export const api = {
-  feed: (p: FeedParams, signal?: AbortSignal) => request<FeedPage>('GET', `/api/feed${query(p)}`, undefined, signal),
+  feed: (p: FeedParams, signal?: AbortSignal) => request<FeedPage>('GET', `/api/feed${query(p)}`, undefined, signal, false, true),
   feedTimeline: (p: TimelineParams, signal?: AbortSignal) =>
     request<FeedTimeline>('GET', `/api/feed/timeline${query(p)}`, undefined, signal),
-  item: (id: number, signal?: AbortSignal) => request<ItemDetail>('GET', `/api/items/${id}`, undefined, signal),
+  item: (id: number, signal?: AbortSignal) => request<ItemDetail>('GET', `/api/items/${id}`, undefined, signal, false, true),
+  voteItem: (id: number, vote: -1 | 0 | 1, dwell_ms: number) =>
+    request<VoteResult>('POST', `/api/items/${id}/vote`, { vote, dwell_ms }, undefined, false, true),
+  subscribeNewsletter: (email: string) =>
+    request<NewsletterResult>('POST', '/api/newsletter/subscribe', { email }),
+  confirmNewsletter: (token: string) =>
+    request<NewsletterResult>('POST', '/api/newsletter/confirm', { token }),
+  unsubscribeNewsletter: (token: string) =>
+    request<NewsletterResult>('POST', '/api/newsletter/unsubscribe', { token }),
   digests: () => request<{ digests: Digest[] | null }>('GET', '/api/digests'),
   digest: (date: string) => request<Digest>('GET', `/api/digests/${encodeURIComponent(date)}`),
   digestHtmlUrl: (date: string) => `${BASE}/api/digests/${encodeURIComponent(date)}?format=html`,
@@ -132,7 +152,7 @@ export function errorMessage(err: unknown): string {
     if (err.status === 409) return 'Já existe uma coleta em andamento. Aguarde terminar.'
     if (err.status === 401) return 'Sua sessão expirou. Entre de novo para editar.'
     if (err.status === 503 && /writes disabled/.test(err.message)) return 'Edição indisponível no momento.'
-    if (err.status === 429) return 'Uma coleta acabou de rodar. Tente de novo em alguns minutos.'
+    if (err.status === 429) return /voto/i.test(err.message) ? err.message : 'Uma coleta acabou de rodar. Tente de novo em alguns minutos.'
     if (err.status === 404) return 'Não encontrado.'
     return err.message
   }

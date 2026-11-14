@@ -62,12 +62,19 @@ test.describe('news feed', () => {
     t.assertClean()
   })
 
-  test('"Em alta" deck: top scores, rotates, "Ver todas" sorts the list by score', async ({ page }) => {
+  test('"Em alta" deck: trending items, rotates, "Ver todas" sorts the list', async ({ page }) => {
     const t = trackErrors(page)
     await page.goto('/')
     const deck = page.getByTestId('popular-deck')
     await expect(deck).toBeVisible()
-    const top = await apiFeed(page, 'period=all&sort=score&page=1&page_size=5')
+    let top = await apiFeed(page, 'period=all&sort=trending&page=1&page_size=5')
+    let expectedHeading = 'Em alta'
+    let expectedSort = /sort=trending/
+    if (!top.items?.length) {
+      top = await apiFeed(page, 'period=all&sort=score&page=1&page_size=5')
+      expectedHeading = 'Maior nota'
+      expectedSort = /sort=score/
+    }
     const ids = top.items!.map((i) => String(i.item_id))
     const front = page.getByTestId('popular-card')
     await expect(front).toHaveAttribute('data-item-id', ids[0]!)
@@ -79,8 +86,8 @@ test.describe('news feed', () => {
       await expect(front).toHaveAttribute('data-item-id', ids[0]!)
     }
     await page.getByTestId('popular-see-all').click()
-    await expect(page).toHaveURL(/sort=score/)
-    await expect(page.getByTestId('list-heading')).toHaveText('Maior nota')
+    await expect(page).toHaveURL(expectedSort)
+    await expect(page.getByTestId('list-heading')).toHaveText(expectedHeading)
     await expect(page.getByTestId('list-heading')).toBeFocused()
     await expect(page.getByTestId('feed-card').first()).toHaveAttribute('data-item-id', ids[0]!)
     t.assertClean()
@@ -115,11 +122,11 @@ test.describe('news feed', () => {
       // The active round item shows its label; the others only an icon.
       await expect(page.getByTestId('bnav-feed')).toHaveAttribute('aria-current', 'page')
       await expect(page.getByTestId('bnav-feed')).toContainText('Feed')
-      await expect(page.getByTestId('bnav-metrics')).toHaveAttribute('aria-label', 'Métricas')
-      await page.getByTestId('bnav-metrics').click()
-      await expect(page).toHaveURL(/\/metrics$/)
-      await expect(page.getByTestId('bnav-metrics')).toContainText('Métricas')
-      for (const n of ['feed', 'digests', 'sources', 'metrics']) {
+      await expect(page.getByTestId('bnav-trending')).toHaveAttribute('aria-label', 'Em alta')
+      await page.getByTestId('bnav-digests').click()
+      await expect(page).toHaveURL(/\/digests$/)
+      await expect(page.getByTestId('bnav-digests')).toContainText('Digests')
+      for (const n of ['feed', 'trending', 'digests', 'search']) {
         const box = (await page.getByTestId(`bnav-${n}`).boundingBox())!
         expect(box.height).toBeGreaterThanOrEqual(48) // Fitts: 48px touch targets
       }

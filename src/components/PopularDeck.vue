@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { FeedItem } from '../api/types'
+import type { FeedItem, VoteResult } from '../api/types'
 import { fmtRelative } from '../lib/format'
 import AppIcon from './AppIcon.vue'
 import NewsCard from './NewsCard.vue'
 import SourceAvatar from './SourceAvatar.vue'
 
 // "Em alta": the stacked deck of the shot. The front card is the current
-// top-scored item; the next two peek above it and fade out. Previous/next
-// rotate through the real top items (GET /api/feed?sort=score).
+// trending item; the next two peek above it and fade out. Previous/next
+// rotate through the real top trending items (GET /api/feed?sort=trending).
 const props = defineProps<{ items: FeedItem[]; threshold?: number; activeTag?: string }>()
-defineEmits<{ tag: [t: string] }>()
+defineEmits<{ tag: [t: string]; vote: [res: VoteResult] }>()
 
 const at = ref(0)
 watch(
@@ -53,6 +53,7 @@ function go(step: number) {
           testid="popular-card"
           class="z-10 shadow-[var(--shadow-lift)]"
           @tag="$emit('tag', $event)"
+          @vote="$emit('vote', $event)"
         />
       </Transition>
     </div>

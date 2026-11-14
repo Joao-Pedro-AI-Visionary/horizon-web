@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { api, errorMessage } from '../api/client'
 import type { Digest } from '../api/types'
 import AppIcon from '../components/AppIcon.vue'
+import NewsletterSignup from '../components/NewsletterSignup.vue'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
 import { fmtDateTime, fmtDay } from '../lib/format'
@@ -228,5 +229,7 @@ async function generate() {
         <StatePanel v-else kind="empty" title="Digest não encontrado" :detail="`Não há digest para ${selectedDate}.`" testid="digest-missing" />
       </section>
     </div>
+
+    <NewsletterSignup id-prefix="digests-nl" class="mt-8" />
   </div>
 </template>

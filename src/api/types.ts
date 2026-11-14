@@ -18,6 +18,8 @@ export interface FeedItem {
   cluster_id: number | null
   duplicate_count: number
   projected_at: string
+  likes?: number
+  user_vote?: -1 | 0 | 1 | number
 }
 
 export interface FeedPage {
@@ -36,9 +38,20 @@ export interface FeedParams {
   from?: string
   to?: string
   min_score?: number
-  sort?: 'score' | 'recent'
+  sort?: 'score' | 'recent' | 'trending'
   page?: number
   page_size?: number
+}
+
+export interface VoteResult {
+  item_id: number
+  likes: number
+  user_vote: -1 | 0 | 1
+}
+
+export interface NewsletterResult {
+  status: 'pending' | 'active' | 'unsubscribed' | string
+  message: string
 }
 
 /** GET /api/feed/timeline: feed rows per calendar day (settings timezone). */
@@ -99,6 +112,8 @@ export interface ItemDetail {
   is_primary: boolean
   cluster: ClusterInfo | null
   duplicates: RelatedItem[] | null
+  likes?: number
+  user_vote?: -1 | 0 | 1 | number
 }
 
 export interface Digest {

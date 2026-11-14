@@ -2,11 +2,14 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api, errorMessage } from '../api/client'
-import type { ItemDetail } from '../api/types'
+import type { ItemDetail, VoteResult } from '../api/types'
 import AppIcon from '../components/AppIcon.vue'
+import ShareBar from '../components/ShareBar.vue'
 import SourceAvatar from '../components/SourceAvatar.vue'
 import StatePanel from '../components/StatePanel.vue'
+import VoteControls from '../components/VoteControls.vue'
 import { fmtDateLong, fmtDateTime, fmtRelative, fmtScore, hostOf, kindLabel } from '../lib/format'
+import { applyPageMeta } from '../lib/seo'
 import { useToasts } from '../stores/toast'
 import { staggerDelay } from '../lib/motion'
 
@@ -16,6 +19,7 @@ const item = ref<ItemDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
 const notFound = ref(false)
+const visibleSince = ref(0)
 let ctrl: AbortController | undefined
 
 async function load() {
@@ -25,7 +29,16 @@ async function load() {
   error.value = ''
   notFound.value = false
   try {
-    item.value = await api.item(Number(route.params.id), ctrl.signal)
+    const loaded = await api.item(Number(route.params.id), ctrl.signal)
+    item.value = loaded
+    visibleSince.value = Date.now()
+    applyPageMeta({
+      title: `${loaded.title} · Radar by JpDev`,
+      description: loaded.summary || loaded.score_reason || loaded.title,
+      canonicalPath: `/items/${loaded.id}`,
+      ogType: 'article',
+      ogImage: `/og/items/${loaded.id}.png`,
+    })
   } catch (err) {
     if ((err as Error).name === 'AbortError') return
     notFound.value = (err as { status?: number }).status === 404
@@ -75,6 +88,12 @@ async function share() {
     if ((err as Error).name === 'AbortError') return
     toasts.error('Não foi possível compartilhar este link.')
   }
+}
+
+function onVoted(res: VoteResult) {
+  if (!item.value || item.value.id !== res.item_id) return
+  item.value.likes = res.likes
+  item.value.user_vote = res.user_vote
 }
 
 function back() {
@@ -164,9 +183,21 @@ function back() {
             </ul>
           </section>
 
-          <a :href="item.url" target="_blank" rel="noopener noreferrer" class="btn-primary group mt-7 min-h-12 w-full sm:w-auto" data-testid="item-original">
-            Abrir original em {{ hostOf(item.url) }} <AppIcon name="external" :size="16" class="nudge" />
-          </a>
+          <div class="mt-7 flex flex-wrap items-center gap-3">
+            <a :href="item.url" target="_blank" rel="noopener noreferrer" class="btn-primary group min-h-12 flex-1 sm:flex-initial" data-testid="item-original">
+              Abrir original em {{ hostOf(item.url) }} <AppIcon name="external" :size="16" class="nudge" />
+            </a>
+            <VoteControls
+              :item-id="item.id"
+              :likes="item.likes"
+              :user-vote="item.user_vote"
+              :dwell-since="visibleSince"
+              :compact="false"
+              @voted="onVoted"
+            />
+          </div>
+
+          <ShareBar :item-id="item.id" :title="item.title" />
 
           <section v-if="item.content" class="mt-8" aria-labelledby="content-h">
             <h2 id="content-h" class="eyebrow">Conteúdo coletado</h2>

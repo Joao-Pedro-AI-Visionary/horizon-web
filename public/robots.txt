@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /sources
+Disallow: /forgot
+Disallow: /reset
+
+Sitemap: https://horizon-web-eight.vercel.app/sitemap.xml
