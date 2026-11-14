@@ -6,7 +6,7 @@ function apiBase(): string {
   return (process.env.HORIZON_API_URL || process.env.VITE_API_URL || DEFAULT_API).replace(/\/+$/, '')
 }
 
-function resolveUpstreamPath(kind: string | null, rawId: string | null): { path: string; defaultContentType: string } | null {
+export function resolveUpstreamPath(kind: string | null, rawId: string | null): { path: string; defaultContentType: string } | null {
   switch (kind) {
     case 'og': {
       const id = Number.parseInt(rawId ?? '', 10)

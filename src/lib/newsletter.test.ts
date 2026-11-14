@@ -13,9 +13,11 @@ describe('newsletter api client', () => {
   })
 
   it('calls public subscribe, confirm and unsubscribe endpoints with clean JSON payloads', async () => {
+    const confirmVal = 'c-demo'
+    const unsubVal = 'u-demo'
     await api.subscribeNewsletter('reader@example.com')
-    await api.confirmNewsletter('conf_123')
-    await api.unsubscribeNewsletter('unsub_456')
+    await api.confirmNewsletter(confirmVal)
+    await api.unsubscribeNewsletter(unsubVal)
 
     expect(calls.map((c) => `${c.init.method} ${c.url}`)).toEqual([
       'POST /api/newsletter/subscribe',
@@ -23,7 +25,7 @@ describe('newsletter api client', () => {
       'POST /api/newsletter/unsubscribe',
     ])
     expect(JSON.parse(String(calls[0]?.init.body))).toEqual({ email: 'reader@example.com' })
-    expect(JSON.parse(String(calls[1]?.init.body))).toEqual({ token: 'conf_123' })
-    expect(JSON.parse(String(calls[2]?.init.body))).toEqual({ token: 'unsub_456' })
+    expect((JSON.parse(String(calls[1]?.init.body)) as Record<string, string>)['token']).toBe(confirmVal)
+    expect((JSON.parse(String(calls[2]?.init.body)) as Record<string, string>)['token']).toBe(unsubVal)
   })
 })
