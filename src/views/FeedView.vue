@@ -521,7 +521,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
         <template v-else>
           <ul class="grid grid-cols-1 gap-4 transition-opacity duration-200 md:grid-cols-2" :class="[loading ? 'opacity-50' : '', popular.length ? '' : 'xl:grid-cols-3']" data-testid="feed-list">
             <li v-for="(it, i) in items" :key="it.item_id" v-memo="[it.item_id, it.score, it.tags, it.likes, it.user_vote, threshold, filters.tag]" class="feed-item grid min-w-0 grid-cols-1">
-              <NewsCard v-reveal="i" :item="it" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" @vote="applyVote" />
+              <NewsCard v-reveal="i === 0 ? false : i" :item="it" :threshold="threshold" :active-tag="filters.tag" @tag="toggleTag" @vote="applyVote" />
             </li>
           </ul>
 

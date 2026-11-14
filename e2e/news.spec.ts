@@ -122,11 +122,11 @@ test.describe('news feed', () => {
       // The active round item shows its label; the others only an icon.
       await expect(page.getByTestId('bnav-feed')).toHaveAttribute('aria-current', 'page')
       await expect(page.getByTestId('bnav-feed')).toContainText('Feed')
-      await expect(page.getByTestId('bnav-metrics')).toHaveAttribute('aria-label', 'Métricas')
-      await page.getByTestId('bnav-metrics').click()
-      await expect(page).toHaveURL(/\/metrics$/)
-      await expect(page.getByTestId('bnav-metrics')).toContainText('Métricas')
-      for (const n of ['feed', 'digests', 'sources', 'metrics']) {
+      await expect(page.getByTestId('bnav-trending')).toHaveAttribute('aria-label', 'Em alta')
+      await page.getByTestId('bnav-digests').click()
+      await expect(page).toHaveURL(/\/digests$/)
+      await expect(page.getByTestId('bnav-digests')).toContainText('Digests')
+      for (const n of ['feed', 'trending', 'digests', 'search']) {
         const box = (await page.getByTestId(`bnav-${n}`).boundingBox())!
         expect(box.height).toBeGreaterThanOrEqual(48) // Fitts: 48px touch targets
       }

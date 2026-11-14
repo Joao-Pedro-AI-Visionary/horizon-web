@@ -37,10 +37,12 @@ function observer(): IntersectionObserver | undefined {
 
 /**
  * v-reveal="index": the element rises and fades in the first time it enters
- * the viewport; `index` staggers siblings. No-op under reduced motion.
+ * the viewport; `index` staggers siblings. Passing `false` leaves the element
+ * static (used for the 1st feed card to keep LCP immediate).
  */
-export const vReveal: Directive<HTMLElement, number | undefined> = {
+export const vReveal: Directive<HTMLElement, number | false | undefined> = {
   mounted(el, { value }) {
+    if (value === false) return
     el.dataset.reveal = ''
     el.style.setProperty('--d', staggerDelay(value ?? 0))
     const o = observer()
