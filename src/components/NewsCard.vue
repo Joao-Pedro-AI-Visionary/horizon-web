@@ -1,30 +1,57 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { FeedItem } from '../api/types'
+import type { FeedItem, VoteResult } from '../api/types'
 import { fmtDateTime, fmtRelative, fmtScore, hostOf } from '../lib/format'
 import AppIcon from './AppIcon.vue'
 import SourceAvatar from './SourceAvatar.vue'
+import VoteControls from './VoteControls.vue'
 
 // News card of the shot (white, large radius, soft shadow): source avatar,
-// source name and relative time, a round action button, the bold title and,
-// in place of likes/comments/views (which the API does not have), the real
-// engagement of an item: LLM score, other sources of the same story and tags.
+// source name and relative time, a round action button, the bold title and
+// real engagement: LLM score, anonymous vote controls, other sources and tags.
 // The title is the card's single stretched link (card guide); the original
-// link and the tag buttons stay independent controls above it.
+// link, vote controls and tag buttons stay independent controls above it.
 const props = withDefaults(
   defineProps<{ item: FeedItem; threshold?: number; activeTag?: string; level?: 2 | 3; maxTags?: number; testid?: string }>(),
   { threshold: 6, level: 3, maxTags: 2, testid: 'feed-card' },
 )
-defineEmits<{ tag: [t: string] }>()
+defineEmits<{ tag: [t: string]; vote: [res: VoteResult] }>()
 
 const when = computed(() => props.item.published_at ?? props.item.projected_at)
 const strong = computed(() => props.item.score >= props.threshold)
 const tags = computed(() => (props.item.tags ?? []).slice(0, props.maxTags))
+
+const cardEl = ref<HTMLElement | null>(null)
+const visibleSince = ref(0)
+let io: IntersectionObserver | null = null
+
+onMounted(() => {
+  if (typeof IntersectionObserver === 'undefined' || !cardEl.value) {
+    visibleSince.value = Date.now()
+    return
+  }
+  io = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting) && visibleSince.value === 0) {
+        visibleSince.value = Date.now()
+        io?.disconnect()
+        io = null
+      }
+    },
+    { threshold: 0.35 },
+  )
+  io.observe(cardEl.value)
+})
+
+onUnmounted(() => {
+  io?.disconnect()
+  io = null
+})
 </script>
 
 <template>
-  <article class="news-card" :data-testid="testid" :data-item-id="item.item_id">
+  <article ref="cardEl" class="news-card" :data-testid="testid" :data-item-id="item.item_id">
     <header class="flex items-center gap-3">
       <SourceAvatar :kind="item.source_kind" />
       <p class="min-w-0 flex-1 leading-tight">
@@ -86,6 +113,15 @@ const tags = computed(() => (props.item.tags ?? []).slice(0, props.maxTags))
       >
         #{{ t }}
       </button>
+      <div class="ml-auto">
+        <VoteControls
+          :item-id="item.item_id"
+          :likes="item.likes"
+          :user-vote="item.user_vote"
+          :dwell-since="visibleSince"
+          @voted="$emit('vote', $event)"
+        />
+      </div>
     </footer>
   </article>
 </template>
