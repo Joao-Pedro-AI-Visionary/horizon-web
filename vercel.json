@@ -12,25 +12,53 @@
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/manifest.webmanifest",
       "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/items/:id(\\d+)", "destination": "/api/item-page?id=:id" },
-    { "source": "/og/items/:id(\\d+).png", "destination": "/api/seo-proxy?kind=og&id=:id" },
-    { "source": "/sitemap.xml", "destination": "/api/seo-proxy?kind=sitemap" },
-    { "source": "/rss.xml", "destination": "/api/seo-proxy?kind=rss-feed" },
-    { "source": "/digests/rss.xml", "destination": "/api/seo-proxy?kind=rss-digests" },
     {
-      "source": "/((?!assets/|api/|icons/|robots\\.txt|sitemap\\.xml|rss\\.xml|digests/rss\\.xml|og/|manifest\\.webmanifest|sw\\.js|favicon-32\\.png|apple-touch-icon\\.png|jpdev-).*)",
+      "source": "/items/:id(\\d+)",
+      "destination": "/api/item-page?id=:id"
+    },
+    {
+      "source": "/og/items/:id(\\d+).png",
+      "destination": "/api/seo-proxy?kind=og&id=:id"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/seo-proxy?kind=sitemap"
+    },
+    {
+      "source": "/rss.xml",
+      "destination": "/api/seo-proxy?kind=rss-feed"
+    },
+    {
+      "source": "/digests/rss.xml",
+      "destination": "/api/seo-proxy?kind=rss-digests"
+    },
+    {
+      "source": "/llms-full.txt",
+      "destination": "/api/seo-proxy?kind=llms-full"
+    },
+    {
+      "source": "/((?!assets/|api/|icons/|robots\\.txt|llms\\.txt|llms-full\\.txt|sitemap\\.xml|rss\\.xml|digests/rss\\.xml|og/|manifest\\.webmanifest|sw\\.js|favicon-32\\.png|apple-touch-icon\\.png|jpdev-).*)",
       "destination": "/index.html"
     }
   ]

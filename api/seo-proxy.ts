@@ -19,6 +19,8 @@ export function resolveUpstreamPath(kind: string | null, rawId: string | null): 
       return { path: '/api/rss/feed.xml', defaultContentType: 'application/rss+xml; charset=utf-8' }
     case 'rss-digests':
       return { path: '/api/rss/digests.xml', defaultContentType: 'application/rss+xml; charset=utf-8' }
+    case 'llms-full':
+      return { path: '/api/llms-full.txt', defaultContentType: 'text/plain; charset=utf-8' }
     default:
       return null
   }
