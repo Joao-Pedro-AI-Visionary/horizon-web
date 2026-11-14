@@ -1,8 +1,47 @@
+# Radar by JpDev — regras para buscadores e IAs
+# Content-Signal: https://contentsignals.org/
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+
 User-agent: *
 Allow: /
 Disallow: /login
 Disallow: /sources
 Disallow: /forgot
 Disallow: /reset
+Disallow: /api/admin
+Disallow: /api/pipeline
+Disallow: /api/newsletter/send
+Disallow: /api/items/ingest
+
+# Robôs de busca e citação das IAs (permissão explícita).
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
 
 Sitemap: https://horizon-web-eight.vercel.app/sitemap.xml

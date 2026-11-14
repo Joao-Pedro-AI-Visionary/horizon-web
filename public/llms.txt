@@ -1,0 +1,23 @@
+# Radar by JpDev
+
+> Curadoria diária de notícias de tecnologia, engenharia e IA, pontuada automaticamente e publicada em português. Também conhecido como Horizon by JpDev.
+
+O feed é público. Não é preciso criar conta para ler, buscar, ver o digest do dia ou reagir com like e deslike.
+
+## Site
+
+- [Página inicial](https://horizon-web-eight.vercel.app/): feed principal, busca e seção Em alta
+- [Digests](https://horizon-web-eight.vercel.app/digests): resumo diário das notícias mais relevantes
+- [Métricas](https://horizon-web-eight.vercel.app/metrics): visão do volume coletado e das fontes
+
+## Feeds e descoberta
+
+- [RSS do feed](https://horizon-web-eight.vercel.app/rss.xml): itens mais recentes do radar
+- [RSS dos digests](https://horizon-web-eight.vercel.app/digests/rss.xml): edições diárias
+- [Sitemap](https://horizon-web-eight.vercel.app/sitemap.xml): URLs canônicas das notícias e dos digests
+- [Índice completo para IAs](https://horizon-web-eight.vercel.app/llms-full.txt): últimas notícias em texto
+
+## Sobre
+
+- [Radar by JpDev](https://horizon-web-eight.vercel.app/): projeto de João Pedro (JpDev), com nota de IA, digest às 08:00 (horário de Brasília) e páginas próprias por notícia, com link para a fonte original.
+- Busca pública: https://horizon-web-eight.vercel.app/?q={termo}

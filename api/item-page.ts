@@ -53,6 +53,61 @@ function safeHttpUrl(raw?: string): string {
   }
 }
 
+export const BRAND_NAME = 'Radar by JpDev'
+export const BRAND_ALT = 'Horizon by JpDev'
+export const BRAND_LOGO = 'https://github.com/Joao-Pedro-AI-Visionary.png'
+
+export function organizationJsonLd(origin: string) {
+  const base = origin.replace(/\/+$/, '')
+  return {
+    '@type': 'Organization',
+    '@id': `${base}/#organization`,
+    name: BRAND_NAME,
+    alternateName: BRAND_ALT,
+    url: `${base}/`,
+    logo: {
+      '@type': 'ImageObject',
+      url: BRAND_LOGO,
+    },
+  }
+}
+
+export function buildNewsArticleJsonLd(
+  item: ItemPageData,
+  origin: string,
+  canonical: string,
+  ogImage: string,
+  description: string,
+) {
+  const org = organizationJsonLd(origin)
+  const published = item.published_at || item.fetched_at || undefined
+  const modified = item.fetched_at || item.published_at || undefined
+  const jsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: item.title,
+    description,
+    inLanguage: 'pt-BR',
+    url: canonical,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+    image: [ogImage],
+    datePublished: published,
+    dateModified: modified,
+    author: org,
+    publisher: org,
+  }
+  const sourceUrl = safeHttpUrl(item.url)
+  if (sourceUrl) {
+    jsonLd.isBasedOn = sourceUrl
+    jsonLd.citation = {
+      '@type': 'CreativeWork',
+      name: item.source_name || item.author || 'Fonte original',
+      url: sourceUrl,
+    }
+  }
+  return jsonLd
+}
+
 function requestOrigin(req: IncomingMessage): string {
   const configured = process.env.PUBLIC_SITE_URL?.trim()
   if (configured) return configured.replace(/\/+$/, '')
@@ -115,30 +170,7 @@ export function renderItemHtml(templateHtml: string, item: ItemPageData, origin 
   html = replaceTag(html, /<meta\s+name="twitter:description"[\s\S]*?\/>/i, `<meta name="twitter:description" content="${escapeHtml(desc)}" />`)
   html = replaceTag(html, /<meta\s+name="twitter:image"[\s\S]*?\/>/i, `<meta name="twitter:image" content="${escapeHtml(ogImage)}" />`)
 
-  const jsonLd: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'NewsArticle',
-    headline: item.title,
-    description: desc,
-    url: canonical,
-    mainEntityOfPage: canonical,
-    image: [ogImage],
-    datePublished: item.published_at || item.fetched_at || undefined,
-    publisher: {
-      '@type': 'Organization',
-      name: 'Radar by JpDev',
-      logo: {
-        '@type': 'ImageObject',
-        url: 'https://github.com/Joao-Pedro-AI-Visionary.png',
-      },
-    },
-  }
-  if (item.source_name || item.author) {
-    jsonLd.author = {
-      '@type': 'Person',
-      name: item.author || item.source_name,
-    }
-  }
+  const jsonLd = buildNewsArticleJsonLd(item, cleanOrigin, canonical, ogImage, desc)
   const extraHead = [
     '<meta property="og:image:width" content="1200" />',
     '<meta property="og:image:height" content="630" />',
