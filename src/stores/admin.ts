@@ -31,7 +31,8 @@ function writeStored(s: Stored | null) {
 }
 
 /**
- * Admin session. Reads are public; writes need a session from
+ * Admin session. Public visitors may only read the feed, items and digests.
+ * Metrics, sources, settings and other admin data need a session from
  * POST /api/auth/login (username + password), sent as a Bearer token and kept
  * in sessionStorage until it expires (12 h) or a write answers 401.
  *

@@ -13,7 +13,7 @@ export const router = createRouter({
     { path: '/forgot', name: 'forgot', component: () => import('../views/ForgotView.vue'), meta: { title: 'Esqueci minha senha' } },
     { path: '/reset', name: 'reset', component: () => import('../views/ResetView.vue'), meta: { title: 'Nova senha' } },
     { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { title: 'Entrar' } },
-    { path: '/metrics', name: 'metrics', component: () => import('../views/MetricsView.vue'), meta: { title: 'Métricas' } },
+    { path: '/metrics', name: 'metrics', component: () => import('../views/MetricsView.vue'), meta: { title: 'Métricas', admin: true } },
     { path: '/newsletter/confirm', name: 'newsletter-confirm', component: () => import('../views/NewsletterActionView.vue'), meta: { title: 'Confirmar newsletter' } },
     { path: '/newsletter/unsubscribe', name: 'newsletter-unsubscribe', component: () => import('../views/NewsletterActionView.vue'), meta: { title: 'Descadastrar newsletter' } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { title: 'Não encontrado' } },
@@ -22,8 +22,8 @@ export const router = createRouter({
   scrollBehavior: (to, from, saved) => saved ?? (to.path === from.path ? false : { top: 0 }),
 })
 
-// Admin pages (Fontes & Config) exist only after login: everyone else is sent
-// to /login, which comes back here once signed in.
+// Admin pages (Fontes & Config, Métricas) exist only after login: everyone
+// else is sent to /login, which comes back here once signed in.
 router.beforeEach(async (to) => {
   if (!to.meta.admin) return true
   const admin = useAdmin()
