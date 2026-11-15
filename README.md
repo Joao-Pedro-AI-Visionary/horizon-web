@@ -68,9 +68,9 @@ de 768px. O indicador de saúde vem de `GET /healthz`.
 
 - **Identidade JpDev**: fundo `#0B0B0B`, superfícies `#141414`/`#1C1C1C`, amarelo `#FFD400`
   em CTAs, item ativo da navegação e nota; laranja `#FF7A00` só em badges de duplicado e alertas.
-  O site usa `public/jpdev-avatar.webp` (foto atual do GitHub) como logo, com `favicon-32.png` e
-  `apple-touch-icon.png` derivados dela. `public/jpdev-logo.png`, cópia byte a byte de
-  `assets/jpdev-logo.png` do horizon-go (mesmo SHA-256), ficou só para os vídeos (`scripts/`, `narrated/`).
+  O site usa `public/logo-128.webp` (ícone oficial Radar by JpDev) no cabeçalho, com `favicon.ico`,
+  `favicon.svg`, `favicon-32.png`, `apple-touch-icon.png` e os ícones PWA em `public/icons/`
+  derivados do mesmo arquivo. `public/jpdev-logo.png` é a mesma marca, usada nos vídeos (`scripts/`, `narrated/`).
 - **Fontes self-hosted** via `@fontsource-variable` (Space Grotesk, Inter, JetBrains Mono),
   sem chamada ao Google Fonts.
 - **Gráficos em SVG próprio** (`components/BarChart.vue`), sem dependência: barras finas com

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'horizon-static-v1'
+const CACHE_NAME = 'horizon-static-v2'
 const DYNAMIC_BYPASS_PREFIXES = [
   '/api/',
   '/healthz',
@@ -21,9 +21,14 @@ function isImmutableAsset(pathname) {
 function isStaticIconOrFont(pathname) {
   return (
     pathname.startsWith('/icons/') ||
+    pathname.startsWith('/logo') ||
+    pathname === '/favicon.ico' ||
+    pathname === '/favicon.svg' ||
+    pathname === '/favicon-16.png' ||
     pathname === '/favicon-32.png' ||
     pathname === '/apple-touch-icon.png' ||
     pathname === '/jpdev-avatar.webp' ||
+    pathname === '/jpdev-logo.png' ||
     pathname === '/manifest.webmanifest'
   )
 }

@@ -40,6 +40,14 @@ describe('SEO helpers & Share links', () => {
     expect(meta.ogImage).toBe('https://horizon-web-eight.vercel.app/og/items/9.png')
   })
 
+  it('defaults the Open Graph image to the first-party brand icon', () => {
+    const meta = buildPageMeta(
+      { title: 'Radar by JpDev', description: 'Curadoria', canonicalPath: '/' },
+      'https://horizon-web-eight.vercel.app',
+    )
+    expect(meta.ogImage).toBe('https://horizon-web-eight.vercel.app/icons/icon-512.png')
+  })
+
   it('writes document head tags when document is available', () => {
     const tags = new Map<string, Record<string, string>>()
     const fakeDoc = {

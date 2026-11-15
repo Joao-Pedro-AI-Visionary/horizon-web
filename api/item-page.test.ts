@@ -57,7 +57,7 @@ describe('Vercel SEO SSR & static crawler files', () => {
     })
     expect(ld.publisher.name).toBe('Radar by JpDev')
     expect(ld.publisher.alternateName).toBe('Horizon by JpDev')
-    expect(ld.publisher.logo.url).toBe('https://github.com/Joao-Pedro-AI-Visionary.png')
+    expect(ld.publisher.logo.url).toBe('https://horizon-web-eight.vercel.app/icons/icon-512.png')
     expect(ld.author['@type']).toBe('Organization')
     const rawLd = [...rendered.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
       .map((m) => m[1])

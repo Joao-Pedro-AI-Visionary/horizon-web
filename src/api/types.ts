@@ -172,6 +172,13 @@ export interface CollectReport {
   error?: string
 }
 
+/** GET /api/stats: public aggregates only (no source URLs or config). */
+export interface PublicStats {
+  sources_enabled: number
+  sources_total: number
+  score_threshold: number
+}
+
 export interface Settings {
   score_threshold: number
   digest_max_items: number

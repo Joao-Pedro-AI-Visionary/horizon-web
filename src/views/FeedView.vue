@@ -247,19 +247,42 @@ function goPage(p: number) {
 }
 
 const sources = ref<Source[]>([])
+const sourcesEnabled = ref(0)
+const sourcesTotal = ref(0)
 const threshold = ref(6)
 const thresholdLoaded = ref(false)
 let cancelIdleTags: (() => void) | undefined
-onMounted(async () => {
+async function loadMeta() {
+  const tasks: Promise<unknown>[] = [
+    api.stats().then((s) => {
+      sourcesEnabled.value = s.sources_enabled
+      sourcesTotal.value = s.sources_total
+      threshold.value = s.score_threshold
+      thresholdLoaded.value = true
+    }),
+  ]
+  if (admin.canEdit) {
+    tasks.push(api.sources().then((s) => {
+      sources.value = s.sources ?? []
+    }))
+  }
+  await Promise.allSettled(tasks)
+}
+onMounted(() => {
   load()
   loadPopular()
-  const [s, st] = await Promise.allSettled([api.sources(), api.settings()])
-  if (s.status === 'fulfilled') sources.value = s.value.sources ?? []
-  if (st.status === 'fulfilled') {
-    threshold.value = st.value.score_threshold
-    thresholdLoaded.value = true
-  }
+  void loadMeta()
 })
+watch(
+  () => admin.canEdit,
+  (ok) => {
+    if (ok && sources.value.length === 0) {
+      void api.sources().then((s) => {
+        sources.value = s.sources ?? []
+      }).catch(() => {})
+    }
+  },
+)
 onUnmounted(() => {
   ctrl?.abort()
   pctrl?.abort()
@@ -267,7 +290,6 @@ onUnmounted(() => {
 })
 
 const totalPages = computed(() => (page.value ? Math.max(1, Math.ceil(page.value.total / page.value.page_size)) : 1))
-const enabledSources = computed(() => sources.value.filter((s) => s.enabled).length)
 const hasFilters = computed(() => {
   const f = filters.value
   return !!(f.q || f.tag || f.source_id || f.min_score || f.from || f.period !== 'all')
@@ -368,7 +390,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
       </button>
     </div>
 
-    <!-- Summary (real numbers from /api/feed, /api/sources, /api/settings) -->
+    <!-- Summary (real numbers from /api/feed and public /api/stats) -->
     <dl class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted" aria-label="Resumo do feed">
       <div class="flex items-baseline gap-1.5">
         <dt class="sr-only">Notícias no feed</dt>
@@ -377,7 +399,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
       </div>
       <div class="flex items-baseline gap-1.5">
         <dt class="sr-only">Fontes ativas</dt>
-        <dd class="font-semibold text-fg tabular-nums">{{ enabledSources }}/{{ sources.length }}</dd>
+        <dd class="font-semibold text-fg tabular-nums">{{ sourcesEnabled }}/{{ sourcesTotal }}</dd>
         <span aria-hidden="true">fontes ativas</span>
       </div>
       <div class="flex items-baseline gap-1.5">
@@ -446,7 +468,7 @@ const reportLabels = { fetched: 'Coletados', published: 'Publicados', duplicates
             <span id="f-sort-l" class="label">Ordem da lista</span>
             <SegmentedControl :options="sorts" :model-value="filters.sort" labelledby="f-sort-l" testid="filter-sort" block @update:model-value="setFilter({ sort: $event })" />
           </div>
-          <div class="lg:col-span-3">
+          <div v-if="sources.length" class="lg:col-span-3">
             <label for="f-source" class="label">Fonte</label>
             <select id="f-source" class="field cursor-pointer" :value="filters.source_id ?? ''" data-testid="filter-source" @change="setFilter({ source_id: ($event.target as HTMLSelectElement).value || undefined })">
               <option value="">Todas</option>

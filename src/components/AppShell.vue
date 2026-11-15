@@ -110,7 +110,7 @@ function isActive(name: string, routeName: unknown) {
       <div class="app-bar">
         <div class="container-ed flex h-(--header-bar) items-center gap-4">
           <RouterLink to="/" class="flex shrink-0 items-center gap-2.5 rounded-full max-md:min-h-11" data-testid="nav-logo" aria-label="Radar by JpDev — início">
-            <img src="/jpdev-avatar.webp" alt="" class="size-9 rounded-full border border-line bg-surface object-cover" width="36" height="36" />
+            <img src="/logo-128.webp" srcset="/logo-64.webp 1x, /logo-128.webp 2x" alt="" class="size-9 shrink-0 object-contain" width="36" height="36" decoding="async" />
             <span class="leading-none">
               <span class="block font-display text-base font-extrabold tracking-tight">Radar</span>
               <span class="mt-0.5 block text-[11px] font-medium text-muted">by JpDev</span>
