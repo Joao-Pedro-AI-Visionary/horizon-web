@@ -3,6 +3,7 @@ import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } fr
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { theme, toggleTheme } from '../lib/theme'
+import { isAdminRouteName } from '../router/access'
 import { useAdmin } from '../stores/admin'
 import { useToasts } from '../stores/toast'
 import AdminAlerts from './AdminAlerts.vue'
@@ -30,7 +31,7 @@ const allNav = [
 ] as const
 
 // Fontes & Config is admin-only: visitors see Feed, Digests and Métricas.
-const nav = computed(() => allNav.filter((n) => n.name === 'feed' || n.name === 'digests' || admin.canEdit))
+const nav = computed(() => allNav.filter((n) => !isAdminRouteName(n.name) || admin.canEdit))
 
 // Signing out on an admin page sends the visitor back to the feed.
 const route = useRoute()
