@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { FeedItem, VoteResult } from '../api/types'
 import { fmtDateTime, fmtRelative, fmtScore, hostOf } from '../lib/format'
+import { useItemLocale } from '../lib/locale'
 import AppIcon from './AppIcon.vue'
 import SourceAvatar from './SourceAvatar.vue'
 import VoteControls from './VoteControls.vue'
@@ -21,6 +22,10 @@ defineEmits<{ tag: [t: string]; vote: [res: VoteResult] }>()
 const when = computed(() => props.item.published_at ?? props.item.projected_at)
 const strong = computed(() => props.item.score >= props.threshold)
 const tags = computed(() => (props.item.tags ?? []).slice(0, props.maxTags))
+
+// Displayed title/summary: PT translation or original (global toggle, with a
+// per-card override). Falls back to the original when there is no PT text.
+const { mode: itemMode, text: shown, canToggle, toggleLabel, toggle: toggleItemLocale } = useItemLocale(() => props.item)
 
 const cardEl = ref<HTMLElement | null>(null)
 const visibleSince = ref(0)
@@ -68,7 +73,7 @@ onUnmounted(() => {
         target="_blank"
         rel="noopener noreferrer"
         class="btn-icon size-11 shadow-none"
-        :aria-label="`Abrir original: ${item.title} (nova aba)`"
+        :aria-label="`Abrir original: ${shown.title} (nova aba)`"
         title="Abrir original"
         data-testid="open-original"
       >
@@ -77,10 +82,10 @@ onUnmounted(() => {
     </header>
 
     <component :is="`h${level}`" class="font-display text-lg leading-snug font-bold tracking-tight break-words text-fg md:text-xl">
-      <RouterLink :to="`/items/${item.item_id}`" class="card-link" data-testid="open-item">{{ item.title }}</RouterLink>
+      <RouterLink :to="`/items/${item.item_id}`" class="card-link" data-testid="open-item" :lang="itemMode === 'pt' && shown.translated ? 'pt-BR' : undefined">{{ shown.title }}</RouterLink>
     </component>
 
-    <p v-if="item.summary" class="line-clamp-3 text-sm leading-relaxed text-muted">{{ item.summary }}</p>
+    <p v-if="shown.summary" class="line-clamp-3 text-sm leading-relaxed text-muted">{{ shown.summary }}</p>
 
     <footer class="mt-auto flex flex-wrap items-center gap-2 pt-1">
       <span
@@ -112,6 +117,17 @@ onUnmounted(() => {
         @click="$emit('tag', t)"
       >
         #{{ t }}
+      </button>
+      <button
+        v-if="canToggle"
+        type="button"
+        class="score-pill cursor-pointer font-medium text-muted hover:border-fg/30 hover:text-fg"
+        :aria-pressed="itemMode === 'original'"
+        :aria-label="`${toggleLabel} deste item`"
+        data-testid="item-locale-toggle"
+        @click="toggleItemLocale()"
+      >
+        {{ toggleLabel }}
       </button>
       <div class="ml-auto">
         <VoteControls

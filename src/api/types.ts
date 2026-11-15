@@ -11,6 +11,9 @@ export interface FeedItem {
   title: string
   url: string
   summary: string
+  /** PT translation (empty/absent until the translate step runs). */
+  title_pt?: string
+  summary_pt?: string
   score_reason: string
   score: number
   tags: string[] | null
@@ -104,6 +107,9 @@ export interface ItemDetail {
   score: number | null
   score_reason: string
   summary: string
+  /** PT translation (empty/absent until the translate step runs). */
+  title_pt?: string
+  summary_pt?: string
   tags: string[] | null
   published_at: string | null
   fetched_at: string

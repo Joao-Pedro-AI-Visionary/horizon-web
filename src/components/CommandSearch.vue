@@ -4,6 +4,7 @@ import { useRouter, type RouteLocationRaw } from 'vue-router'
 import { api, errorMessage } from '../api/client'
 import type { FeedItem } from '../api/types'
 import { fmtRelative, fmtScore } from '../lib/format'
+import { displayText, locale } from '../lib/locale'
 import { useAdmin } from '../stores/admin'
 import AppIcon from './AppIcon.vue'
 
@@ -203,7 +204,7 @@ onUnmounted(() => {
                 @click="router.push(`/items/${it.item_id}`); emit('close')"
               >
                 <span class="min-w-0 flex-1">
-                  <span class="block truncate font-display text-sm font-semibold">{{ it.title }}</span>
+                  <span class="block truncate font-display text-sm font-semibold">{{ displayText(it, locale).title }}</span>
                   <span class="mt-0.5 block text-xs text-muted">{{ it.source_name }} · {{ fmtRelative(it.published_at ?? it.projected_at) }}</span>
                 </span>
                 <span class="shrink-0 rounded-full border border-line bg-ink px-2.5 py-0.5 font-mono text-xs font-semibold text-accent tabular-nums">
