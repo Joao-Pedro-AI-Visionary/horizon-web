@@ -50,7 +50,7 @@ export function buildPageMeta(input: PageMetaInput, origin = siteOrigin()) {
     ? input.ogImage.startsWith('http')
       ? input.ogImage
       : `${cleanOrigin}${input.ogImage}`
-    : 'https://github.com/Joao-Pedro-AI-Visionary.png'
+    : `${cleanOrigin}/icons/icon-512.png`
   return {
     title: input.title,
     description,

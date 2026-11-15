@@ -55,7 +55,7 @@ function safeHttpUrl(raw?: string): string {
 
 export const BRAND_NAME = 'Radar by JpDev'
 export const BRAND_ALT = 'Horizon by JpDev'
-export const BRAND_LOGO = 'https://github.com/Joao-Pedro-AI-Visionary.png'
+export const BRAND_LOGO = 'https://horizon-web-eight.vercel.app/icons/icon-512.png'
 
 export function organizationJsonLd(origin: string) {
   const base = origin.replace(/\/+$/, '')

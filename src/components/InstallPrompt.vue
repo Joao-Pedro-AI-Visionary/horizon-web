@@ -19,7 +19,7 @@ const visible = computed(() => canInstall.value && !installed.value && !installD
   >
     <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
       <div class="flex min-w-0 items-center gap-3">
-        <img src="/icons/icon-192.png" alt="" class="size-10 shrink-0 rounded-xl border border-line object-cover" width="40" height="40" />
+        <img src="/icons/icon-192.png" alt="" class="size-10 shrink-0 object-contain" width="40" height="40" decoding="async" />
         <div class="min-w-0">
           <p class="font-display text-sm font-bold text-fg">Instalar Radar no dispositivo</p>
           <p class="text-xs text-muted">Acesso rápido ao feed diário sem barra do navegador.</p>

@@ -58,7 +58,7 @@
       "destination": "/api/seo-proxy?kind=llms-full"
     },
     {
-      "source": "/((?!assets/|api/|icons/|robots\\.txt|llms\\.txt|llms-full\\.txt|sitemap\\.xml|rss\\.xml|digests/rss\\.xml|og/|manifest\\.webmanifest|sw\\.js|favicon-32\\.png|apple-touch-icon\\.png|jpdev-).*)",
+      "source": "/((?!assets/|api/|icons/|robots\\.txt|llms\\.txt|llms-full\\.txt|sitemap\\.xml|rss\\.xml|digests/rss\\.xml|og/|manifest\\.webmanifest|sw\\.js|favicon|apple-touch-icon\\.png|logo|jpdev-).*)",
       "destination": "/index.html"
     }
   ]
