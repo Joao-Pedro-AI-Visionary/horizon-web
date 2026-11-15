@@ -30,7 +30,7 @@ const allNav = [
 ] as const
 
 // Fontes & Config is admin-only: visitors see Feed, Digests and Métricas.
-const nav = computed(() => allNav.filter((n) => n.name !== 'sources' || admin.canEdit))
+const nav = computed(() => allNav.filter((n) => n.name === 'feed' || n.name === 'digests' || admin.canEdit))
 
 // Signing out on an admin page sends the visitor back to the feed.
 const route = useRoute()

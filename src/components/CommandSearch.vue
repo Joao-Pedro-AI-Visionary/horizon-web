@@ -32,9 +32,9 @@ const quickLinks = computed<QuickLink[]>(() => {
     { label: 'Feed principal', hint: 'Mais recentes', to: { path: '/' }, icon: 'feed' },
     { label: 'Em alta', hint: 'Tendências com decaimento', to: { path: '/', query: { sort: 'trending' } }, icon: 'flame' },
     { label: 'Digests diários', hint: 'Edições resumidas pela IA', to: { path: '/digests' }, icon: 'digest' },
-    { label: 'Métricas', hint: 'Saúde e volume das fontes', to: { path: '/metrics' }, icon: 'metrics' },
   ]
   if (admin.canEdit) {
+    links.push({ label: 'Métricas', hint: 'Saúde e volume das fontes', to: { path: '/metrics' }, icon: 'metrics' })
     links.push({ label: 'Fontes & Config', hint: 'Administração', to: { path: '/sources' }, icon: 'sources' })
   }
   return links
