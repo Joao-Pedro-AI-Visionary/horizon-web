@@ -76,6 +76,39 @@ describe('Vercel SEO SSR & static crawler files', () => {
     expect(unsafeRendered).not.toContain('javascript:alert(1)')
   })
 
+  it('prefers the PT translation in SSR meta and JSON-LD, keeping the source URL', () => {
+    const template = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
+    const base = {
+      id: 90,
+      title: 'Rust 2.0 released',
+      summary: 'The Rust team shipped a major release.',
+      url: 'https://example.com/rust-2',
+      source_name: 'Hacker News',
+    }
+    const rendered = renderItemHtml(
+      template,
+      { ...base, title_pt: 'Rust 2.0 é lançado', summary_pt: 'O time do Rust lançou uma versão maior.' },
+      'https://horizon-web-eight.vercel.app',
+    )
+    expect(rendered).toContain('<title>Rust 2.0 é lançado · Radar by JpDev</title>')
+    expect(rendered).toContain('<meta name="description" content="O time do Rust lançou uma versão maior." />')
+    expect(rendered).toContain('<meta property="og:title" content="Rust 2.0 é lançado · Radar by JpDev" />')
+    expect(rendered).toContain('<h1>Rust 2.0 é lançado</h1>')
+    expect(rendered).toContain('href="https://example.com/rust-2"')
+    const ld = [...rendered.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+      .map((m) => JSON.parse(m[1]) as Record<string, any>)
+      .find((b) => b['@type'] === 'NewsArticle')
+    expect(ld?.headline).toBe('Rust 2.0 é lançado')
+    expect(ld?.description).toBe('O time do Rust lançou uma versão maior.')
+    expect(ld?.inLanguage).toBe('pt-BR')
+    expect(ld?.isBasedOn).toBe('https://example.com/rust-2')
+
+    // Empty / blank translations fall back to the original text.
+    const fallback = renderItemHtml(template, { ...base, title_pt: '  ', summary_pt: '' }, 'https://horizon-web-eight.vercel.app')
+    expect(fallback).toContain('<title>Rust 2.0 released · Radar by JpDev</title>')
+    expect(fallback).toContain('<meta name="description" content="The Rust team shipped a major release." />')
+  })
+
   it('ships valid public robots.txt allowing crawlers and referencing sitemap', () => {
     const robots = readFileSync(resolve(process.cwd(), 'public', 'robots.txt'), 'utf8')
     expect(robots).toMatch(/User-agent:\s*\*/i)

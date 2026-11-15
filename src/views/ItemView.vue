@@ -9,6 +9,7 @@ import SourceAvatar from '../components/SourceAvatar.vue'
 import StatePanel from '../components/StatePanel.vue'
 import VoteControls from '../components/VoteControls.vue'
 import { fmtDateLong, fmtDateTime, fmtRelative, fmtScore, hostOf, kindLabel } from '../lib/format'
+import { displayText, useItemLocale } from '../lib/locale'
 import { applyPageMeta } from '../lib/seo'
 import { useToasts } from '../stores/toast'
 import { staggerDelay } from '../lib/motion'
@@ -32,9 +33,11 @@ async function load() {
     const loaded = await api.item(Number(route.params.id), ctrl.signal)
     item.value = loaded
     visibleSince.value = Date.now()
+    // Same text as the SSR page (api/item-page.ts): PT first, original as fallback.
+    const meta = displayText(loaded, 'pt')
     applyPageMeta({
-      title: `${loaded.title} · Radar by JpDev`,
-      description: loaded.summary || loaded.score_reason || loaded.title,
+      title: `${meta.title} · Radar by JpDev`,
+      description: meta.summary || loaded.score_reason || meta.title,
       canonicalPath: `/items/${loaded.id}`,
       ogType: 'article',
       ogImage: `/og/items/${loaded.id}.png`,
@@ -63,9 +66,13 @@ onMounted(async () => {
 const statusLabel: Record<string, string> = { raw: 'Aguardando nota', scored: 'Com nota', deduped: 'Processado', duplicate: 'Duplicado', failed: 'Falhou' }
 const duplicates = computed(() => item.value?.duplicates ?? [])
 
+// Displayed title/summary: PT translation or original (global toggle, with a
+// per-page override). Falls back to the original when there is no PT text.
+const { mode: itemMode, text: shown, canToggle, toggleLabel, toggle: toggleItemLocale } = useItemLocale(() => item.value)
+
 // Summary with bold lead words (the shot's body text), purely typographic.
 const lead = computed(() => {
-  const words = (item.value?.summary ?? '').split(/\s+/).filter(Boolean)
+  const words = shown.value.summary.split(/\s+/).filter(Boolean)
   const n = Math.min(3, Math.max(0, words.length - 1))
   return { head: words.slice(0, n).join(' '), tail: words.slice(n).join(' ') }
 })
@@ -79,7 +86,7 @@ async function share() {
   if (!it) return
   try {
     if (navigator.share) {
-      await navigator.share({ title: it.title, url: it.url })
+      await navigator.share({ title: shown.value.title || it.title, url: it.url })
       return
     }
     await navigator.clipboard.writeText(it.url)
@@ -152,10 +159,23 @@ function back() {
                 <span class="mt-0.5 block text-xs text-muted"><time :datetime="item.published_at ?? item.fetched_at">{{ fmtRelative(item.published_at ?? item.fetched_at) }}</time></span>
               </p>
             </div>
-            <h1 class="display-lg mt-5 break-words">{{ item.title }}</h1>
-            <p class="mt-3 text-sm font-medium text-muted">
-              <time :datetime="item.published_at ?? item.fetched_at">{{ fmtDateLong(item.published_at ?? item.fetched_at) }}</time>
-            </p>
+            <h1 class="display-lg mt-5 break-words" data-testid="item-title" :lang="itemMode === 'pt' && shown.translated ? 'pt-BR' : undefined">{{ shown.title }}</h1>
+            <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <p class="text-sm font-medium text-muted">
+                <time :datetime="item.published_at ?? item.fetched_at">{{ fmtDateLong(item.published_at ?? item.fetched_at) }}</time>
+              </p>
+              <button
+                v-if="canToggle"
+                type="button"
+                class="score-pill min-h-11 cursor-pointer font-medium text-muted hover:border-fg/30 hover:text-fg"
+                :aria-pressed="itemMode === 'original'"
+                :aria-label="`${toggleLabel} desta notícia`"
+                data-testid="item-locale-toggle"
+                @click="toggleItemLocale()"
+              >
+                {{ toggleLabel }}
+              </button>
+            </div>
             <!-- Meta row (shot: author · source · likes) -->
             <ul class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-line py-3 text-sm font-semibold" data-testid="item-meta">
               <li v-if="item.author" class="flex items-center gap-1.5"><AppIcon name="user" :size="15" class="text-muted" /> Por {{ item.author }}</li>
@@ -164,9 +184,9 @@ function back() {
             </ul>
           </header>
 
-          <section v-if="item.summary" class="mt-6" aria-labelledby="sum-h">
+          <section v-if="shown.summary" class="mt-6" aria-labelledby="sum-h">
             <h2 id="sum-h" class="sr-only">Resumo</h2>
-            <p class="text-lg leading-relaxed text-fg/80" data-testid="item-summary"><strong class="font-bold text-fg">{{ lead.head }}</strong> {{ lead.tail }}</p>
+            <p class="text-lg leading-relaxed text-fg/80" data-testid="item-summary" :lang="itemMode === 'pt' && shown.translated ? 'pt-BR' : undefined"><strong class="font-bold text-fg">{{ lead.head }}</strong> {{ lead.tail }}</p>
           </section>
 
           <section class="mt-6 rounded-3xl bg-tint p-5" aria-labelledby="reason-h">
@@ -197,7 +217,7 @@ function back() {
             />
           </div>
 
-          <ShareBar :item-id="item.id" :title="item.title" />
+          <ShareBar :item-id="item.id" :title="shown.title" />
 
           <section v-if="item.content" class="mt-8" aria-labelledby="content-h">
             <h2 id="content-h" class="eyebrow">Conteúdo coletado</h2>

@@ -6,6 +6,9 @@ export interface ItemPageData {
   id: number
   title: string
   summary?: string
+  /** PT translation from the API; empty/absent until the translate step runs. */
+  title_pt?: string | null
+  summary_pt?: string | null
   score_reason?: string
   score?: number | null
   url?: string
@@ -53,6 +56,16 @@ function safeHttpUrl(raw?: string): string {
   }
 }
 
+const filled = (s: string | null | undefined): s is string => typeof s === 'string' && s.trim() !== ''
+
+/** The site is pt-BR: show title_pt || title and summary_pt || summary. */
+export function ptText(item: ItemPageData): { title: string; summary: string } {
+  return {
+    title: filled(item.title_pt) ? item.title_pt.trim() : item.title,
+    summary: filled(item.summary_pt) ? item.summary_pt.trim() : item.summary ?? '',
+  }
+}
+
 export const BRAND_NAME = 'Radar by JpDev'
 export const BRAND_ALT = 'Horizon by JpDev'
 export const BRAND_LOGO = 'https://horizon-web-eight.vercel.app/icons/icon-512.png'
@@ -85,7 +98,7 @@ export function buildNewsArticleJsonLd(
   const jsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
-    headline: item.title,
+    headline: ptText(item).title,
     description,
     inLanguage: 'pt-BR',
     url: canonical,
@@ -154,8 +167,9 @@ export function renderItemHtml(templateHtml: string, item: ItemPageData, origin 
   const cleanOrigin = origin.replace(/\/+$/, '')
   const canonical = `${cleanOrigin}/items/${item.id}`
   const ogImage = `${cleanOrigin}/og/items/${item.id}.png`
-  const titleText = `${item.title} · Radar by JpDev`
-  const desc = truncateDesc(item.summary || item.score_reason || item.title)
+  const text = ptText(item)
+  const titleText = `${text.title} · Radar by JpDev`
+  const desc = truncateDesc(text.summary || item.score_reason || text.title)
 
   let html = templateHtml
   html = replaceTag(html, /<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(titleText)}</title>`)
@@ -182,7 +196,7 @@ export function renderItemHtml(templateHtml: string, item: ItemPageData, origin 
   const scoreLine = item.score != null ? `<p>Nota IA: ${escapeHtml(item.score.toFixed(1))}</p>` : ''
   const safeOrigUrl = safeHttpUrl(item.url)
   const linkLine = safeOrigUrl ? `<p><a href="${escapeHtml(safeOrigUrl)}" rel="noopener noreferrer">Ler fonte original</a></p>` : ''
-  const fallbackBody = `<main style="max-width:720px;margin:2rem auto;padding:0 1rem;font-family:system-ui,sans-serif"><h1>${escapeHtml(item.title)}</h1>${sourceLine}${scoreLine}<p>${escapeHtml(desc)}</p>${linkLine}</main>`
+  const fallbackBody = `<main style="max-width:720px;margin:2rem auto;padding:0 1rem;font-family:system-ui,sans-serif"><h1>${escapeHtml(text.title)}</h1>${sourceLine}${scoreLine}<p>${escapeHtml(desc)}</p>${linkLine}</main>`
   html = html.replace(/<div id="app"><\/div>/i, `<div id="app">${fallbackBody}</div>`)
   return html
 }

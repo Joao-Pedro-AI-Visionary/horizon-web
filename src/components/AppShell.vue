@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
+import { LOCALE_LABEL, locale, otherLocale, toggleLocale } from '../lib/locale'
 import { theme, toggleTheme } from '../lib/theme'
 import { isAdminRouteName } from '../router/access'
 import { useAdmin } from '../stores/admin'
@@ -155,6 +156,17 @@ function isActive(name: string, routeName: unknown) {
               @click="toggleTheme()"
             >
               <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" :size="17" />
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border border-line bg-surface px-3 text-xs font-semibold text-fg transition-colors hover:border-fg/30"
+              :aria-label="locale === 'pt' ? 'Idioma: português. Mostrar títulos e resumos no idioma original' : 'Idioma: original. Mostrar títulos e resumos traduzidos para português'"
+              :title="`Mostrar ${LOCALE_LABEL[otherLocale(locale)]}`"
+              data-testid="locale-toggle"
+              :data-locale="locale"
+              @click="toggleLocale()"
+            >
+              {{ LOCALE_LABEL[locale] }}
             </button>
             <AdminAlerts v-if="admin.status === 'in'" />
             <div class="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted" role="status" data-testid="api-health">
